@@ -1,3 +1,4 @@
 .env
 .idea
 .venv
+django_error.log
