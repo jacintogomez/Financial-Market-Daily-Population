@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd
 from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo
-from .utils import StockData,FMPData,EODHDData
+from .utils import APIResponse,FMPData,EODHDData
 from bson import ObjectId
 
 api_url='https://localhost/stocks'
@@ -15,7 +15,7 @@ def get_stock_data(request,symbol):
     # TODO change the below line to accept all APIs
     fmp_data=FMPData(fetch_stock_data_fmp(symbol))
     eod_data=EODHDData(fetch_stock_data_eodhd(symbol))
-    stock_data=StockData(symbol,fmp_data,eod_data)
+    stock_data=APIResponse(symbol,fmp_data,eod_data)
     print(stock_data.to_dict())
     stocks_dictionary=stock_data.to_dict()
 
