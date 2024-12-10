@@ -53,6 +53,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Adding error logs to django_error.log
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

@@ -1,3 +1,5 @@
+# This file isn't currently used anywhere
+
 from dataclasses import dataclass
 
 @dataclass

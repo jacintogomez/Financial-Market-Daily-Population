@@ -2,6 +2,7 @@ import requests
 from decouple import config
 
 #environment variable setup
+#TODO replace these with the company API keys, right now it just uses my personal key
 fmp_api_key=config('FMP_API_KEY')
 eodhd_api_key=config('EODHD_API_KEY')
 
@@ -15,7 +16,7 @@ class Stock:
         return self.name+' ('+self.ticker+')'
 
 #FMP and EOD require different inputs for the API requests
-#Below function pre-processes stock data to store in an object
+#Below function pre-processes stock data taken from the API to return identical result formats
 
 def fetch_stock_data_fmp(input_ticker):
     stock=Stock(input_ticker)
@@ -32,6 +33,7 @@ def fetch_stock_data_fmp(input_ticker):
 
 def fetch_stock_data_eodhd(input_ticker):
     stock=Stock(input_ticker)
+    #EODHD demo API key only allows access to AAPL stock calls
     url='https://eodhd.com/api/real-time/'+stock.ticker+'?api_token='+eodhd_api_key+'&fmt=json'
     response=requests.get(url)
     if response.status_code==200:

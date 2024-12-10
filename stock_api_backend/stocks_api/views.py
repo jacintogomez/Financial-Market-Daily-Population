@@ -9,12 +9,16 @@ api_url='https://localhost/stocks'
 
 @api_view(['GET'])
 def get_stock_data(request,symbol,provider):
-    #below will need to be changed when more API providers are integrated
+
+    # TODO change the below line to accept all APIs
     stock_data=fetch_stock_data_fmp(symbol) if provider=='fmp' else fetch_stock_data_eodhd(symbol)
     save_to_mongo(stock_data)
-    #I need to add the below otherwise it won't recognize the MongoDB objectID field
+
+    # MongoDB specific: need to convert the mandatory _id field from ObjectId to string
+    # otherwise there will be an error that ObjectId can't be converted to JSON
     if '_id' in stock_data and isinstance(stock_data['_id'],ObjectId):
         stock_data['_id'] = str(stock_data['_id'])
+
     return Response(stock_data)
 
 @api_view(['GET'])
