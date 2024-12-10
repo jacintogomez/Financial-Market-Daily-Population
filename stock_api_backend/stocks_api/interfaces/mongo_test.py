@@ -1,8 +1,11 @@
+#This is just a test file supplied by MongoDB to test the DB connection
+
 
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from decouple import config
 
-uri = "mongodb+srv://clusterdata:tX05yWA9k7NFgyfI@mycluster.7qcvb.mongodb.net/?retryWrites=true&w=majority&appName=MyCluster"
+uri=config('MONGO_URI')
 
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
