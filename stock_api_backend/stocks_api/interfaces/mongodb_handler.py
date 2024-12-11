@@ -9,7 +9,7 @@ collection=db['stock-backend-collection']
 
 def save_to_mongo(data):
     # collection.insert_one(data)
-    query={'ticker':data['ticker']}
+    query={'ticker':data['ticker']} #TODO This should probably use datetime as another primary key
     # $set:data will only
     # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
     collection.update_one(query,{'$set':data},upsert=True)
