@@ -19,5 +19,6 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('stocks_api.urls')),
+    path('financialhubv3/api/v3/',include('stocks_api.urls')),
+    path('financialhubv3/_health',include('stocks_api.health_check.health_urls')),
 ]
