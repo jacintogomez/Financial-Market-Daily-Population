@@ -5,7 +5,9 @@ T=TypeVar('T')
 
 class FMPData:
     def __init__(self,data=None):
-        self.price=data[0]['Stock Price']
+        self.price=data['Stock Price']
+    def __str__(self):
+        return f'Price: {self.price}'
     def to_dict(self):
         return { 'price': self.price if self.price else None }
 
@@ -28,10 +30,10 @@ class APIResponse:
             'ticker': self.ticker,
             'timestamp': self.timestamp,
             'FMP': {
-                'price': self.FMP.to_dict() if self.FMP else None
+                'price': self.FMP.price if self.FMP else None
             },
             'EODHD': {
-                'price': self.EODHD.to_dict() if self.EODHD else None
+                'price': self.EODHD.price if self.EODHD else None
             }
         }
 

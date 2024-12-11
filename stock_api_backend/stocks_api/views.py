@@ -13,8 +13,11 @@ api_url='https://localhost/stocks'
 def get_stock_data(request,symbol):
 
     # TODO change the below line to accept all APIs
-    fmp_data=FMPData(fetch_stock_data_fmp(symbol))
-    eod_data=EODHDData(fetch_stock_data_eodhd(symbol))
+    fmp_response_code,fmp_response=fetch_stock_data_fmp(symbol)
+    eod_response_code,eod_response=fetch_stock_data_eodhd(symbol)
+
+    fmp_data=FMPData(fmp_response) if fmp_response_code==200 else None
+    eod_data=EODHDData(eod_response) if eod_response_code==200 else None
     stock_data=APIResponse(symbol,fmp_data,eod_data)
     print(stock_data.to_dict())
     stocks_dictionary=stock_data.to_dict()

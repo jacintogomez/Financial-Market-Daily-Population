@@ -12,16 +12,18 @@ eodhd_api_key=config('EODHD_API_KEY')
 def fetch_stock_data_fmp(input_ticker):
     url='https://financialmodelingprep.com/api/v3/discounted-cash-flow/'+input_ticker+'?apikey='+fmp_api_key
     response=requests.get(url)
-    print(response.json())
     if response.status_code==200:
-        return response.json()
-    return {'response_code':response.status_code}
+        print('Successful FMP response')
+        return 200,response.json()[0]
+    print('Failed to fetch FMP response')
+    return response.status_code,None
 
 def fetch_stock_data_eodhd(input_ticker):
     #EODHD demo API key only allows access to AAPL stock calls
     url='https://eodhd.com/api/real-time/'+input_ticker+'?api_token='+eodhd_api_key+'&fmt=json'
     response=requests.get(url)
-    print(response.json())
     if response.status_code==200:
-        return response.json()
-    return {'response_code':response.status_code}
+        print('Successful EODHD response')
+        return 200,response.json()
+    print('Failed to fetch EODHD response')
+    return response.status_code,None
