@@ -16,8 +16,8 @@ def get_stock_data(request,symbol):
     fmp_response_code,fmp_response=fetch_stock_data_fmp(symbol)
     eod_response_code,eod_response=fetch_stock_data_eodhd(symbol)
 
-    fmp_data=FMPData(fmp_response) if fmp_response_code==200 else None
-    eod_data=EODHDData(eod_response) if eod_response_code==200 else None
+    fmp_data=FMPData(fmp_response) if (fmp_response_code==200 and fmp_response!=None) else None
+    eod_data=EODHDData(eod_response) if (eod_response_code==200 and eod_response!=None) else None
     stock_data=APIResponse(symbol,fmp_data,eod_data)
     print(stock_data.to_dict())
     stocks_dictionary=stock_data.to_dict()

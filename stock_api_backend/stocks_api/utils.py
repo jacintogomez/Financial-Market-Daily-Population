@@ -6,6 +6,7 @@ T=TypeVar('T')
 class FMPData:
     def __init__(self,data=None):
         self.price=data['Stock Price']
+        print('FMP object created')
     def __str__(self):
         return f'Price: {self.price}'
     def to_dict(self):
@@ -14,6 +15,7 @@ class FMPData:
 class EODHDData:
     def __init__(self,data=None):
         self.price=data['close'] if data else None
+        print('EOD object created')
     def to_dict(self):
         return { 'price': self.price if self.price else None }
 
