@@ -28,6 +28,7 @@ def fetch_stock_data_fmp(input_ticker):
         data=response1.json()
         print('passing ',isinstance(data,list))
         if isinstance(data,list) and data:
+            stock_data.found=True
             stock_data.provider='FMP'
             stock_data.price=data[0]['price']
             stock_data.day_high=data[0]['dayHigh']

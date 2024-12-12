@@ -17,6 +17,7 @@ class StockData:
         self.market_cap=0
         self.pe_ratio=0
         self.dividend_yield=0
+        self.found=False
     def __str__(self):
         return f'ticker: {self.ticker}, price: {self.price}'
     def convert_data_to_dict(self):

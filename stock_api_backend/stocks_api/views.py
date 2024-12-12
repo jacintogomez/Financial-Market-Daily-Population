@@ -23,7 +23,11 @@ def get_stock_data(request,symbol):
         response_code,stock_data=api(symbol)
         if response_code==200 and stock_data is not None:
             print(stock_data)
-            api_response=APIResponse(response_code,'Data retrieved successfully',stock_data)
+            if stock_data.found:
+                msg='Data retrieved successfully'
+            else:
+                msg='No data retrieved for symbol '+symbol
+            api_response=APIResponse(response_code,msg,stock_data)
             print(api_response.to_dict())
             api_dictionary=api_response.to_dict()
 
