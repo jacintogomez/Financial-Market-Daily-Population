@@ -21,7 +21,8 @@ def get_stock_data(request,symbol):
     for api in api_functions:
         response_code,retrieved_data,api_provider=api(symbol)
         if response_code==200 and retrieved_data is not None:
-            stock_data=APIResponse(api_provider,retrieved_data)
+            print(retrieved_data)
+            stock_data=APIResponse(symbol,api_provider,retrieved_data)
             print(stock_data.to_dict())
             stocks_dictionary=stock_data.to_dict()
 

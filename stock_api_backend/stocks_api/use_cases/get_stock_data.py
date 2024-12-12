@@ -9,22 +9,24 @@ fmp_api_suffix='apikey='+config('FMP_API_KEY')
 eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
 # API Urls
-fmp_prefix='https://financialmodelingprep.com/api/'
+fmp_prefix='https://financialmodelingprep.com/api/v3/'
 
 #FMP and EOD require different inputs for the API requests
 #Below function pre-processes stock data taken from the API to return identical result formats
 
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
-    # Price
-    url1=fmp_prefix+'/quote/'+input_ticker+'?'+fmp_api_suffix
-    url2=fmp_prefix+'/profile/'+input_ticker+'?'+fmp_api_suffix
+
+    url1=fmp_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
+    url2=fmp_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
+
     response1=requests.get(url1)
     response2=requests.get(url2)
 
     stock_data=StockData(input_ticker)
     if response1.status_code==200:
         data=response1.json()
+        print('passing ',isinstance(data,list))
         if isinstance(data,list) and data:
             stock_data.price=data[0]['price']
             stock_data.day_high=data[0]['dayHigh']
