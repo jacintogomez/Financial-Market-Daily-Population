@@ -39,6 +39,19 @@ def get_stock_data(request,symbol):
     return Response(failure_response.to_dict())
 
 @api_view(['GET'])
+def get_multi_stock_data(request,symbols):
+    list_of_symbols=symbols.split(',')
+    result=[]
+    for symbol in list_of_symbols:
+        response_code,stock_data=get_stock_data(request,symbol)
+        #result.append
+    return Response(result)
+
+@api_view(['GET'])
+def get_fundamentals(request):
+    pass
+
+@api_view(['GET'])
 def get_all_stocks(request):
     """Returns a list of all stocks in the database"""
     stocks=fetch_from_mongo()

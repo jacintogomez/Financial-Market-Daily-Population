@@ -32,6 +32,12 @@ class StockData:
     def convert_data_to_dict(self):
         return self.__dict__
 
+class FundamentalsData:
+    def __init__(self):
+        self.parameters=0
+    def convert_data_to_dict(self):
+        return self.__dict__
+
 class APIResponse:
     def __init__(self,code,message,data=None):
         self.timestamp=datetime.now(timezone.utc).isoformat()
