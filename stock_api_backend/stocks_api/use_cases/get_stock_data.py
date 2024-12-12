@@ -21,12 +21,12 @@ def fetch_stock_data_fmp(input_ticker):
     url2=fmp_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
 
     response1=requests.get(url1)
-    response2=requests.get(url2)
-
     stock_data=StockData(input_ticker)
+
     if response1.status_code==200:
         data=response1.json()
         print('passing ',isinstance(data,list))
+        print('data is ',data)
         if isinstance(data,list) and data:
             stock_data.found=True
             stock_data.provider='FMP'
@@ -38,6 +38,8 @@ def fetch_stock_data_fmp(input_ticker):
             stock_data.percent_change=data[0]['changesPercentage']
             stock_data.volume=data[0]['volume']
             stock_data.pe_ratio=data[0]['pe']
+
+    response2=requests.get(url2)
     if response2.status_code==200:
         data=response2.json()
         if isinstance(data,list) and data:
