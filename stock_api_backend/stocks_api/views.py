@@ -18,19 +18,21 @@ def get_stock_data(request,symbol):
 
     # Iterate over every API option to find the stock data
     # Once it is found on a provider API, stop and return those results
+    response_code=200
     for api in api_functions:
-        response_code,retrieved_data,api_provider=api(symbol)
-        if response_code==200 and retrieved_data is not None:
-            print(retrieved_data)
-            stock_data=APIResponse(symbol,api_provider,retrieved_data)
-            print(stock_data.to_dict())
-            stocks_dictionary=stock_data.to_dict()
+        response_code,stock_data=api(symbol)
+        if response_code==200 and stock_data is not None:
+            print(stock_data)
+            api_response=APIResponse(response_code,'Data retrieved successfully',stock_data)
+            print(api_response.to_dict())
+            api_dictionary=api_response.to_dict()
 
-            save_to_mongo(stocks_dictionary)
-            return Response(stocks_dictionary)
+            #save_to_mongo(stocks_dictionary)
+            return Response(api_dictionary)
 
     # If the stock is not retrievable by any API (or doesn't exist)
-    return Response({'message':'Stock Data Not Found'})
+    failure_response=APIResponse(response_code,'Data not retrieved',None)
+    return Response(failure_response.to_dict())
 
 @api_view(['GET'])
 def get_all_stocks(request):

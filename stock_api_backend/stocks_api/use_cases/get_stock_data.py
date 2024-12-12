@@ -28,6 +28,7 @@ def fetch_stock_data_fmp(input_ticker):
         data=response1.json()
         print('passing ',isinstance(data,list))
         if isinstance(data,list) and data:
+            stock_data.provider='FMP'
             stock_data.price=data[0]['price']
             stock_data.day_high=data[0]['dayHigh']
             stock_data.day_low=data[0]['dayLow']
@@ -45,8 +46,8 @@ def fetch_stock_data_fmp(input_ticker):
     if response1.status_code==200 and response2.status_code==200:
         print('Successful FMP response')
     else:
-        print('Failed to fetch FMP response')
-    return max(response1.status_code,response2.status_code),stock_data,'FMP'
+        print('Failed to fetch full FMP response')
+    return max(response1.status_code,response2.status_code),stock_data
 
 def fetch_stock_data_eodhd(input_ticker):
     #EODHD demo API key only allows access to AAPL stock calls
