@@ -1,7 +1,12 @@
 import requests
 from decouple import config
 from datetime import datetime
-from ..utils import StockData
+from ..utils import StockData,LogPrint
+import logging
+
+logging.basicConfig(handlers=[LogPrint()])
+logger=logging.getLogger('custom')
+logger.setLevel(logging.DEBUG)
 
 # Environment variable setup
 #TODO replace these with the company API keys, right now it just uses my personal key
@@ -38,7 +43,9 @@ def fetch_stock_data_fmp(input_ticker):
             stock_data.percent_change=data[0]['changesPercentage']
             stock_data.volume=data[0]['volume']
             stock_data.pe_ratio=data[0]['pe']
-
+    logger.debug("This is a debug message")
+    logger.info("This is an info message")
+    logger.error("This is an error message")
     response2=requests.get(url2)
     if response2.status_code==200:
         data=response2.json()

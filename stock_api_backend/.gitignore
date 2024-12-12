@@ -2,3 +2,4 @@
 .idea
 .venv
 django_error.log
+global_logs.log

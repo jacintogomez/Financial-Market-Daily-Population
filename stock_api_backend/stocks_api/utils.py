@@ -1,7 +1,16 @@
 from datetime import datetime, timezone
 from typing import Generic, Optional, TypeVar
+import sys
+import logging
+
+class LogPrint(logging.StreamHandler):
+    def __init__(self):
+        super().__init__(sys.stdout)
 
 T=TypeVar('T')
+logging.basicConfig(handlers=[LogPrint()])
+logger=logging.getLogger('custom')
+logger.setLevel(logging.DEBUG)
 
 class StockData:
     def __init__(self,ticker):
@@ -42,3 +51,4 @@ class ErrorDetails:
         self.status_code=status
         self.details=details
         self.field=field
+

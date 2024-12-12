@@ -11,10 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+GLOBAL_LOGS=os.path.join(BASE_DIR,'global_logs.log')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -57,18 +58,44 @@ MIDDLEWARE = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'django_error.log',
+            'formatter': 'verbose',
         },
+        'global_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': GLOBAL_LOGS,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        }
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
             'level': 'ERROR',
             'propagate': True,
+        },
+        'custom':{
+            'handlers': ['global_file','console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
