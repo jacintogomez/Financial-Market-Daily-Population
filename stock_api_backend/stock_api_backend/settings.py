@@ -63,24 +63,8 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
-        'simple': {
-            'format': '{message}',
-            'style': '{',
-        },
     },
     'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': 'django_error.log',
-            'formatter': 'verbose',
-        },
-        'global_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': GLOBAL_LOGS,
-            'formatter': 'verbose',
-        },
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
@@ -88,13 +72,8 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-        'custom':{
-            'handlers': ['global_file','console'],
-            'level': 'DEBUG',
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
