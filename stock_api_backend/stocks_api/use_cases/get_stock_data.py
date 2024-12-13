@@ -1,3 +1,5 @@
+from urllib import response
+
 import requests
 from decouple import config
 from datetime import datetime
@@ -9,7 +11,8 @@ fmp_api_suffix='apikey='+config('FMP_API_KEY')
 eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
 # API Urls
-fmp_prefix='https://financialmodelingprep.com/api/v3/'
+fmp_api_prefix='https://financialmodelingprep.com/api/v3/'
+eodhd_api_prefix='https://eodhd.com/api/'
 
 #FMP and EOD require different inputs for the API requests
 #Below function pre-processes stock data taken from the API to return identical result formats
@@ -17,8 +20,8 @@ fmp_prefix='https://financialmodelingprep.com/api/v3/'
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
 
-    url1=fmp_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
-    url2=fmp_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
+    url1=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
+    url2=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
 
     response1=requests.get(url1)
     stock_data=StockData(input_ticker)
@@ -45,9 +48,22 @@ def fetch_stock_data_fmp(input_ticker):
     return max(response1.status_code,response2.status_code),stock_data
 
 def fetch_stock_data_eodhd(input_ticker):
-    #EODHD demo API key only allows access to AAPL stock calls
     url='https://eodhd.com/api/real-time/'+input_ticker+eodhd_api_suffix
     response=requests.get(url)
     if response.status_code==200:
         return 200,response.json()
-    return response.status_code,None,'EODHD'
+    return response.status_code,None
+
+def fetch_all_symbols_from_market(market_ticker):
+    url=eodhd_api_prefix+'exchange-symbol-list/'+market_ticker+'?'+eodhd_api_suffix
+    response=requests.get(url)
+    if response.status_code==200:
+        return 200,response.json()
+    return response.status_code,None
+
+def fetch_market_exchange_data():
+    url=eodhd_api_prefix+'exchanges-list/?'+eodhd_api_suffix
+    response=requests.get(url)
+    if response.status_code==200:
+        return 200,response.json()
+    return response.status_code,None

@@ -2,7 +2,7 @@ import json
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd
+from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market
 from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo
 from .utils import APIResponse
 from bson import ObjectId
@@ -14,7 +14,6 @@ api_functions=[fetch_stock_data_fmp]
 def get_stock_data(request,symbol):
     """Takes in stock symbol and produces a dictionary with the information
     in the StockData class, also saving to the database"""
-    # TODO change the below line to accept all APIs
 
     # Iterate over every API option to find the stock data
     # Once it is found on a provider API, stop and return those results
@@ -59,3 +58,13 @@ def get_all_stocks(request):
         if '_id' in stock and isinstance(stock['_id'],ObjectId):
             stock['_id'] = str(stock['_id'])
     return Response(stocks)
+
+@api_view(['GET'])
+def get_assets_under_market(request,market_ticker):
+    symbols=fetch_all_symbols_from_market(market_ticker)
+    return Response(symbols)
+
+@api_view(['GET'])
+def get_market_exchange_data(request):
+    markets=fetch_market_exchange_data()
+    return Response(markets)
