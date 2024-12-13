@@ -11,11 +11,11 @@ load_dotenv()
 
 api_key=os.getenv('OPENAI_API_KEY')
 fmp_key=config('FMP_API_KEY')
-fundamental_url='https://financialmodelingprep.com/api/v3/quotes/index?'+fmp_key
+fundamental_url='https://financialmodelingprep.com/api/v3/quotes/index?apikey='+fmp_key
 
 def ai_summary(request):
     llm=ChatOpenAI()
-    fundamentals=requests.get(fundamental_url).json()
+    fundamentals=requests.get(fundamental_url).json()[:10]
     formatted_data=json.dumps(fundamentals,indent=4)
     task=f'Based on the received json data, please give a general summary of the market so far today\n{formatted_data}'
 
