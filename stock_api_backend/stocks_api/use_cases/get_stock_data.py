@@ -25,8 +25,6 @@ def fetch_stock_data_fmp(input_ticker):
 
     if response1.status_code==200:
         data=response1.json()
-        print('passing ',isinstance(data,list))
-        print('data is ',data)
         if isinstance(data,list) and data:
             stock_data.found=True
             stock_data.provider='FMP'
@@ -44,11 +42,6 @@ def fetch_stock_data_fmp(input_ticker):
         if isinstance(data,list) and data:
             stock_data.market_cap=data[0]['mktCap']
             stock_data.dividend_yield=data[0]['lastDiv']
-    print(response1.status_code,response2.status_code)
-    if response1.status_code==200 and response2.status_code==200:
-        print('Successful FMP response')
-    else:
-        print('Failed to fetch full FMP response')
     return max(response1.status_code,response2.status_code),stock_data
 
 def fetch_stock_data_eodhd(input_ticker):
@@ -56,7 +49,5 @@ def fetch_stock_data_eodhd(input_ticker):
     url='https://eodhd.com/api/real-time/'+input_ticker+eodhd_api_suffix
     response=requests.get(url)
     if response.status_code==200:
-        print('Successful EODHD response')
         return 200,response.json()
-    print('Failed to fetch EODHD response')
     return response.status_code,None,'EODHD'
