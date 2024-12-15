@@ -62,9 +62,13 @@ def get_all_stocks(request):
 @api_view(['GET'])
 def get_assets_under_market(request,market_ticker):
     symbols=fetch_all_symbols_from_market(market_ticker)
+    for symbol in symbols[1]:
+        save_to_mongo(symbol)
     return Response(symbols)
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
     markets=fetch_market_exchange_data()
+    for market in markets[1]:
+        save_to_mongo(market)
     return Response(markets)
