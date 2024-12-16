@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market
-from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collection
+from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collection,drop_collectiosn_from_mongo
 from .utils import APIResponse
 from bson import ObjectId
 
@@ -28,7 +28,6 @@ def get_stock_data(request,symbol):
             api_response=APIResponse(response_code,msg,stock_data)
             api_dictionary=api_response.to_dict()
 
-            #save_to_mongo(stocks_dictionary)
             return Response(api_dictionary)
 
     # If the stock is not retrievable by any API (or doesn't exist)
@@ -72,12 +71,20 @@ def get_assets_under_market(market_ticker):
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
-    markets=fetch_market_exchange_data()
-    print('market data ',markets[1])
+    code,markets=fetch_market_exchange_data()
+    message='Market exchange data retrieved successfully' if code==200 else 'Market exchange data not retrieved'
+    print('market data ',markets)
+    market_response=APIResponse(code,message,markets[0])
     limit=0
     for market in markets[1]:
         limit+=1
         if limit>3:
             break
         get_assets_under_market(market['Code'])
-    return Response(markets[1][0])
+    return Response(market_response)
+
+@api_view(['DELETE'])
+def clear_test_collections(request):
+    # This is just for testing purposes obviously, will not be in the real thing
+    drop_collectiosn_from_mongo()
+    return Response('Deleted collections')
