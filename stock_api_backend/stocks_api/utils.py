@@ -31,10 +31,14 @@ class StockData:
         self.found=False
     def __str__(self):
         return f'ticker: {self.ticker}, price: {self.price}'
+    def convert_data_to_dict(self):
+        return self.__dict__
 
 class FundamentalsData:
     def __init__(self):
         self.parameters=0
+    def convert_data_to_dict(self):
+        return self.__dict__
 
 class APIResponse:
     def __init__(self,code,message,data=None):
@@ -46,7 +50,7 @@ class APIResponse:
         return {
             'timestamp': self.timestamp,
             'status_code': self.status_code,
-            'data': self.data.__dict__,
+            'data': self.data.convert_data_to_dict() if self.data else None,
             'message': self.message,
         }
 

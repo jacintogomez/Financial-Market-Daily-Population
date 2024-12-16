@@ -7,6 +7,7 @@ from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collectio
 from .utils import APIResponse, APIResponseRenderer
 from bson import ObjectId
 from .tasks import async_market_population
+from django.http import JsonResponse
 
 api_url='https://localhost/stocks'
 api_functions=[fetch_stock_data_fmp]
@@ -29,14 +30,14 @@ def get_stock_data(request,symbol):
                 else:
                     msg='No data retrieved for symbol '+symbol
                 api_response=APIResponse(response_code,msg,stock_data)
-                return api_response
+                return JsonResponse(api_response.to_dict())
 
         # If the stock is not retrievable by any API (or doesn't exist)
         failure_response=APIResponse(404,f'Data not retrieved for symbol {symbol}',None)
-        return failure_response
+        return JsonResponse(failure_response.to_dict())
     except Exception as e:
         error_response=APIResponse(500,f'Internal server error: {str(e)}',None)
-        return error_response
+        return JsonResponse(error_response.to_dict())
 
 @api_view(['GET'])
 def get_multi_stock_data(request,symbols):
@@ -63,9 +64,9 @@ def get_assets_under_market(market_ticker):
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
-    print('in market_exchange_data')
     async_market_population.delay()
-    return Response('Added all markets on exchange')
+    market_exchange_data=APIResponse(200,'Begun populating database with market data..',None)
+    return JsonResponse(market_exchange_data.to_dict())
 
 @api_view(['DELETE'])
 def clear_test_collections(request):

@@ -1,6 +1,8 @@
+from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
 from rest_framework.response import Response
+from ..utils import APIResponse
 
 mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
@@ -13,7 +15,8 @@ def save_to_mongo(data,market):
     # $set:data will only
     # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
     collection.update_one(query,{'$set':data},upsert=True)
-    return Response({'Saved market code':data['Code']})
+    response=APIResponse(200,f'Saved market code {data["Code"]} to MongoDB',None)
+    return JsonResponse(response.to_dict())
 
 def fetch_from_mongo_collection(market):
     # {} is used to find all documents; no filters
