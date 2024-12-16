@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
 from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market
-from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collection,drop_collections_from_mongo
+from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo
 from .utils import APIResponse, APIResponseRenderer
 from bson import ObjectId
 from .tasks import async_market_population
@@ -54,13 +54,7 @@ def get_fundamentals(request):
 
 #@api_view(['GET'])
 def get_assets_under_market(market_ticker):
-    symbols=fetch_all_symbols_from_market(market_ticker)
-    limit=0
-    for symbol in symbols[1]:
-        limit+=1
-        if limit>3:
-            break
-        save_to_mongo(symbol,market_ticker)
+    pass
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
