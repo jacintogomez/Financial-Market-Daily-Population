@@ -12,7 +12,7 @@ exchanges_collection=db['market_exchanges']
 assets_collection=db['assets']
 
 def save_asset_to_mongo(asset,market):
-    query={'Code':asset['Code'],'Exchange':market['Code']}
+    query={'Code':asset['Code'],'Exchange':market}
     print('updating asset')
     # $set:data will
     # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
@@ -36,8 +36,8 @@ def drop_collections_from_mongo():
     # This is just for testing purposes obviously, will not be in the real thing
     deletions=[]
     print('dropping all')
-    #collections=[exchanges_collection,assets_collection]
-    collections=['US','TO','LSE']
+    collections=[exchanges_collection,assets_collection]
+    #collections=['US','TO','LSE']
     for collection in collections:
         db.drop_collection(collection)
         deletions.append(collection)
