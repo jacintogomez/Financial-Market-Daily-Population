@@ -6,6 +6,7 @@ from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodh
 from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collection,drop_collections_from_mongo
 from .utils import APIResponse
 from bson import ObjectId
+from .tasks import async_market_population
 
 api_url='https://localhost/stocks'
 api_functions=[fetch_stock_data_fmp]
@@ -62,15 +63,8 @@ def get_assets_under_market(market_ticker):
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
-    code,markets=fetch_market_exchange_data()
-    message='Market exchange data retrieved successfully' if code==200 else 'Market exchange data not retrieved'
-    market_response=APIResponse(code,message,markets[0])
-    limit=0
-    for market in markets:
-        limit+=1
-        if limit>3:
-            break
-        get_assets_under_market(market['Code'])
+    print('in market_exchange_data')
+    async_market_population.delay()
     return Response('Added all markets on exchange')
 
 @api_view(['DELETE'])
