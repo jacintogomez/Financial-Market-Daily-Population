@@ -48,16 +48,6 @@ def fetch_stock_data_fmp(input_ticker):
     return max(response1.status_code,response2.status_code),stock_data
 
 def fetch_stock_data_eodhd(input_ticker):
-    """Returns response object in format:
-    {
-        Code:
-        Country:
-        Currency:
-        Exchange:
-        Isin:
-        Name:
-        type:
-    }"""
     url='https://eodhd.com/api/real-time/'+input_ticker+eodhd_api_suffix
     response=requests.get(url)
     if response.status_code==200:
