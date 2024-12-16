@@ -20,7 +20,7 @@ def fetch_from_mongo_collection(market):
     # {'_id':0} ignores the MongoDB mandatory _id field
     return list(db[market].find({},{'_id':0}))
 
-def drop_collectiosn_from_mongo():
+def drop_collections_from_mongo():
     # This is just for testing purposes obviously, will not be in the real thing
     deletions=[]
     collections=['US','TO','LSE']

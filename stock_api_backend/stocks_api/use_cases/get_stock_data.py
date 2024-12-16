@@ -19,7 +19,6 @@ eodhd_api_prefix='https://eodhd.com/api/'
 
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
-
     url1=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
     url2=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
 

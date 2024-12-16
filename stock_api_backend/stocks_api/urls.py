@@ -1,8 +1,7 @@
 from django.urls import path
-from .views import get_all_stocks_from_market, get_stock_data, get_multi_stock_data, get_fundamentals, get_market_exchange_data,clear_test_collections
+from .views import get_stock_data, get_multi_stock_data, get_fundamentals, get_market_exchange_data,clear_test_collections
 
 urlpatterns = [
-    path('stocks/<str:market_ticker>',get_all_stocks_from_market),
     path('stocks/<str:symbol>',get_stock_data),
     path('stocks/<str:stocks>',get_multi_stock_data),
     path('fundamentals/',get_fundamentals),
