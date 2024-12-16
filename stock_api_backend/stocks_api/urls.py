@@ -3,7 +3,6 @@ from .views import get_stock_data, get_multi_stock_data, get_fundamentals, get_m
 
 urlpatterns = [
     path('stocks/<str:symbol>',get_stock_data),
-    path('stocks/<str:stocks>',get_multi_stock_data),
     path('fundamentals/',get_fundamentals),
     #path('market_exchange_data/<str:market_ticker>',get_assets_under_market),
     path('market_exchange/',get_market_exchange_data),

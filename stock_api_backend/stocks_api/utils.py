@@ -1,7 +1,18 @@
 from datetime import datetime, timezone
 from typing import Generic, Optional, TypeVar
+from rest_framework.renderers import JSONRenderer
+from django.http import HttpResponse
+import json
 
 T=TypeVar('T')
+
+class APIResponseRenderer(JSONRenderer):
+    def render(self,data,accepted_media_type=None,renderer_context=None):
+        if hasattr(data,'to_dict'):
+            response_data=data.to_dict()
+            json_data=json.dumps(response_data)
+            return HttpResponse(content=json_data,content_type='application/json',status=data.status_code)
+        return super().render(data,accepted_media_type,renderer_context)
 
 class StockData:
     def __init__(self,ticker):
@@ -20,14 +31,10 @@ class StockData:
         self.found=False
     def __str__(self):
         return f'ticker: {self.ticker}, price: {self.price}'
-    def convert_data_to_dict(self):
-        return self.__dict__
 
 class FundamentalsData:
     def __init__(self):
         self.parameters=0
-    def convert_data_to_dict(self):
-        return self.__dict__
 
 class APIResponse:
     def __init__(self,code,message,data=None):
@@ -39,7 +46,7 @@ class APIResponse:
         return {
             'timestamp': self.timestamp,
             'status_code': self.status_code,
-            'data': self.data.convert_data_to_dict(),
+            'data': self.data.__dict__,
             'message': self.message,
         }
 

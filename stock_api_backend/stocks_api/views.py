@@ -1,10 +1,10 @@
 import json
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
 from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market
 from .interfaces.mongodb_handler import save_to_mongo,fetch_from_mongo_collection,drop_collections_from_mongo
-from .utils import APIResponse
+from .utils import APIResponse, APIResponseRenderer
 from bson import ObjectId
 from .tasks import async_market_population
 
@@ -12,6 +12,7 @@ api_url='https://localhost/stocks'
 api_functions=[fetch_stock_data_fmp]
 
 @api_view(['GET'])
+@renderer_classes([APIResponseRenderer])
 def get_stock_data(request,symbol):
     """Takes in stock symbol and produces a dictionary with the information
     in the StockData class, also saving to the database"""
@@ -28,15 +29,14 @@ def get_stock_data(request,symbol):
                 else:
                     msg='No data retrieved for symbol '+symbol
                 api_response=APIResponse(response_code,msg,stock_data)
-                api_dictionary=api_response.to_dict()
-                return Response(api_dictionary)
+                return api_response
 
         # If the stock is not retrievable by any API (or doesn't exist)
-        failure_response=APIResponse(response_code,f'Data not retrieved for symbol {symbol}',None)
-        return Response(failure_response.to_dict())
+        failure_response=APIResponse(404,f'Data not retrieved for symbol {symbol}',None)
+        return failure_response
     except Exception as e:
         error_response=APIResponse(500,f'Internal server error: {str(e)}',None)
-        return Response(error_response.to_dict())
+        return error_response
 
 @api_view(['GET'])
 def get_multi_stock_data(request,symbols):
