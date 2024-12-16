@@ -8,7 +8,7 @@ db=client['stock-backend']
 
 def save_to_mongo(data,market):
     collection=db[market]
-    query={'ticker':data['Code']} #TODO This should probably use datetime as another primary key
+    query={'Code':data['Code']}
     # $set:data will only
     # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
     collection.update_one(query,{'$set':data},upsert=True)
