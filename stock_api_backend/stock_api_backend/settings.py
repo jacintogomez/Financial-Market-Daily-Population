@@ -58,44 +58,18 @@ MIDDLEWARE = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'django_error.log',
-            'formatter': 'verbose',
         },
-        'global_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': GLOBAL_LOGS,
-            'formatter': 'verbose',
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        }
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
             'level': 'ERROR',
             'propagate': True,
-        },
-        'custom':{
-            'handlers': ['global_file','console'],
-            'level': 'DEBUG',
-            'propagate': False,
         },
     },
 }
@@ -119,7 +93,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'stock_api_backend.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -172,3 +145,20 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # For local development
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Optional but recommended Celery settings
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE  # Use your Django project's timezone
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
+    'DEFAULT_RESPONSE_CLASS': 'stocks_api.utils.APIResponse',
+}

@@ -1,16 +1,18 @@
 from datetime import datetime, timezone
 from typing import Generic, Optional, TypeVar
-import sys
-import logging
-
-class LogPrint(logging.StreamHandler):
-    def __init__(self):
-        super().__init__(sys.stdout)
+from rest_framework.renderers import JSONRenderer
+from django.http import HttpResponse
+import json
 
 T=TypeVar('T')
-logging.basicConfig(handlers=[LogPrint()])
-logger=logging.getLogger('custom')
-logger.setLevel(logging.DEBUG)
+
+class APIResponseRenderer(JSONRenderer):
+    def render(self,data,accepted_media_type=None,renderer_context=None):
+        if hasattr(data,'to_dict'):
+            response_data=data.to_dict()
+            json_data=json.dumps(response_data)
+            return HttpResponse(content=json_data,content_type='application/json',status=data.status_code)
+        return super().render(data,accepted_media_type,renderer_context)
 
 class StockData:
     def __init__(self,ticker):
@@ -32,6 +34,12 @@ class StockData:
     def convert_data_to_dict(self):
         return self.__dict__
 
+class FundamentalsData:
+    def __init__(self):
+        self.parameters=0
+    def convert_data_to_dict(self):
+        return self.__dict__
+
 class APIResponse:
     def __init__(self,code,message,data=None):
         self.timestamp=datetime.now(timezone.utc).isoformat()
@@ -42,7 +50,7 @@ class APIResponse:
         return {
             'timestamp': self.timestamp,
             'status_code': self.status_code,
-            'data': self.data.convert_data_to_dict(),
+            'data': self.data.convert_data_to_dict() if self.data else None,
             'message': self.message,
         }
 
