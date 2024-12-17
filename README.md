@@ -12,5 +12,13 @@ Steps to run locally:
 1. cd into the `stock_api_backend` folder
 2. Install dependencies `pip install -r requirements.txt`
 3. Add in `.env` file with variables specified in `.env.template`
-3. Apply migrations if necessary `python manage.py migrate` 
-4. Run app `python manage.py runserver` and open on localhost
+4. Apply migrations if necessary `python manage.py migrate`
+5. Run app `python manage.py runserver` and open on localhost
+
+
+Steps to setup async and webhook:
+1. Start Redis broker to accept async tasks `redis-server`
+2. Start Celery worker to handle async tasks `celery -A stock_api_backend worker --loglevel=info`
+3. Start Zookeeper `bin/zookeeper-server-start.sh config/zookeeper.properties`
+4. Start Kafka `bin/kafka-server-start.sh config/server.properties`
+5. Check Kafka messages `bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic market_data --from-beginning`

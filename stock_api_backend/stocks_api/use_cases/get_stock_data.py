@@ -6,7 +6,7 @@ from datetime import datetime
 from ..utils import StockData
 
 # Environment variable setup
-#TODO replace these with the company API keys, right now it just uses my personal key
+
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 

@@ -1,19 +1,31 @@
+from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
 from rest_framework.response import Response
+from ..utils import APIResponse
 
 mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 
 db=client['stock-backend']
+exchanges_collection=db['market_exchanges']
+assets_collection=db['assets']
 
-def save_to_mongo(data,market):
-    collection=db[market]
-    query={'Code':data['Code']}
-    # $set:data will only
+def save_asset_to_mongo(asset,market):
+    query={'Code':asset['Code'],'Exchange':market}
+    print('updating asset')
+    # $set:data will
     # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
-    collection.update_one(query,{'$set':data},upsert=True)
-    return Response({'Saved market code':data['Code']})
+    assets_collection.update_one(query,{'$set':asset},upsert=True)
+    response=APIResponse(200,f'Saved asset with code {asset["Code"]} to assets collection',None)
+    return JsonResponse(response.to_dict())
+
+def save_market_to_mongo(market):
+    print('updating market')
+    query={'Code':market['Code']}
+    exchanges_collection.update_one(query,{'$set':market},upsert=True)
+    response=APIResponse(200,f'Saved market with code {market["Code"]} to exchanges collection',None)
+    return JsonResponse(response.to_dict())
 
 def fetch_from_mongo_collection(market):
     # {} is used to find all documents; no filters
@@ -23,7 +35,9 @@ def fetch_from_mongo_collection(market):
 def drop_collections_from_mongo():
     # This is just for testing purposes obviously, will not be in the real thing
     deletions=[]
-    collections=['US','TO','LSE']
+    print('dropping all')
+    collections=[exchanges_collection,assets_collection]
+    #collections=['US','TO','LSE']
     for collection in collections:
         db.drop_collection(collection)
         deletions.append(collection)
