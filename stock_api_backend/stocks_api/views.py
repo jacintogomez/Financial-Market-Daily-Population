@@ -8,35 +8,49 @@ from .utils import APIResponse, APIResponseRenderer
 from bson import ObjectId
 from .tasks import async_market_population
 from django.http import JsonResponse
+from .domain.models import Stock
 
 api_url='https://localhost/stocks'
 api_functions=[fetch_stock_data_fmp]
 
 @api_view(['GET'])
 @renderer_classes([APIResponseRenderer])
-def get_stock_data(request,symbol):
+def get_stock_data(request, symbol):
     """Takes in stock symbol and produces a dictionary with the information
     in the StockData class, also saving to the database"""
-
-    # Iterate over every API option to find the stock data
-    # Once it is found on a provider API, stop and return those results
     try:
-        response_code=200
+        response_code = 200
         for api in api_functions:
-            response_code,stock_data=api(symbol)
-            if response_code==200 and stock_data is not None:
-                if stock_data.found:
-                    msg='Data retrieved successfully'
+            response_code, stock = api(symbol)
+            if response_code == 200 and stock is not None:
+                if stock.found:
+                    # Save to MongoDB
+                    stock_doc = Stock(
+                        symbol=stock.symbol,
+                        provider=stock.provider,
+                        price=stock.price,
+                        day_high=stock.day_high,
+                        day_low=stock.day_low,
+                        open_price=stock.open_price,
+                        change=stock.change,
+                        percent_change=stock.percent_change,
+                        volume=stock.volume,
+                        market_cap=stock.market_cap,
+                        pe_ratio=stock.pe_ratio,
+                        dividend_yield=stock.dividend_yield,
+                        found=stock.found
+                    )
+                    stock_doc.save()
+                    msg = 'Data retrieved successfully'
                 else:
-                    msg='No data retrieved for symbol '+symbol
-                api_response=APIResponse(response_code,msg,stock_data)
+                    msg = 'No data retrieved for symbol ' + symbol
+                api_response = APIResponse(response_code, msg, stock.to_dict())
                 return JsonResponse(api_response.to_dict())
 
-        # If the stock is not retrievable by any API (or doesn't exist)
-        failure_response=APIResponse(404,f'Data not retrieved for symbol {symbol}',None)
+        failure_response = APIResponse(404, f'Data not retrieved for symbol {symbol}', None)
         return JsonResponse(failure_response.to_dict())
     except Exception as e:
-        error_response=APIResponse(500,f'Internal server error: {str(e)}',None)
+        error_response = APIResponse(500, f'Internal server error: {str(e)}', None)
         return JsonResponse(error_response.to_dict())
 
 @api_view(['GET'])

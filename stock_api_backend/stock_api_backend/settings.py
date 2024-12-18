@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -162,3 +163,6 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RESPONSE_CLASS': 'stocks_api.utils.APIResponse',
 }
+
+import mongoengine
+mongoengine.connect(config('MONGODB_DB_NAME'),host=config('MONGO_URI'))
