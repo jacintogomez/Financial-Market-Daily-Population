@@ -25,22 +25,7 @@ def get_stock_data(request, symbol):
             if response_code == 200 and stock is not None:
                 if stock.found:
                     # Save to MongoDB
-                    stock_doc = Stock(
-                        symbol=stock.symbol,
-                        provider=stock.provider,
-                        price=stock.price,
-                        day_high=stock.day_high,
-                        day_low=stock.day_low,
-                        open_price=stock.open_price,
-                        change=stock.change,
-                        percent_change=stock.percent_change,
-                        volume=stock.volume,
-                        market_cap=stock.market_cap,
-                        pe_ratio=stock.pe_ratio,
-                        dividend_yield=stock.dividend_yield,
-                        found=stock.found
-                    )
-                    stock_doc.save()
+                    stock=Stock.upsert_stock(stock)
                     msg = 'Data retrieved successfully'
                 else:
                     msg = 'No data retrieved for symbol ' + symbol

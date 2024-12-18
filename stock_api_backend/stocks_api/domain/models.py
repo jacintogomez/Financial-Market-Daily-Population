@@ -2,22 +2,27 @@ from mongoengine import Document, StringField, DecimalField, IntField, DateTimeF
 from datetime import datetime,timezone
 
 class Stock(Document):
-    symbol = StringField(max_length=20, required=True)
-    provider = StringField(max_length=20, required=False)
-    price = DecimalField(precision=2)
-    day_high = DecimalField(precision=2)
-    day_low = DecimalField(precision=2)
-    open_price = DecimalField(precision=2)
-    change = DecimalField(precision=2)
-    percent_change = DecimalField(precision=2)
-    volume = IntField()
-    market_cap = IntField()
-    pe_ratio = DecimalField(precision=2)
-    dividend_yield = DecimalField(precision=2)
-    found = BooleanField(default=False)
-    timestamp = DateTimeField(default=datetime.now(timezone.utc).isoformat())
+    symbol=StringField(max_length=20,required=True,unique=True)
+    provider=StringField(max_length=20,required=False)
+    price=DecimalField(precision=2)
+    day_high=DecimalField(precision=2)
+    day_low=DecimalField(precision=2)
+    open_price=DecimalField(precision=2)
+    change=DecimalField(precision=2)
+    percent_change=DecimalField(precision=2)
+    volume=IntField()
+    market_cap=IntField()
+    pe_ratio=DecimalField(precision=2)
+    dividend_yield=DecimalField(precision=2)
+    found=BooleanField(default=False)
+    timestamp=DateTimeField(default=datetime.now(timezone.utc).isoformat())
 
-    meta = {'collection': 'stock-backend-collection'}
+    meta = {
+        'collection': 'stock-backend-collection',
+        'indexes':[
+            {'fields':['symbol'],'unique':True},
+        ]
+    }
 
     def to_dict(self):
         return {
@@ -36,3 +41,23 @@ class Stock(Document):
             'found': self.found,
             'timestamp': self.timestamp if self.timestamp else None
         }
+
+    @classmethod
+    def upsert_stock(cls,stock):
+        return cls.objects(symbol=stock.symbol).modify(
+            upsert=True,
+            new=True,
+            set__provider=stock.provider,
+            set__price=stock.price,
+            set__day_high=stock.day_high,
+            set__day_low=stock.day_low,
+            set__open_price=stock.open_price,
+            set__change=stock.change,
+            set__percent_change=stock.percent_change,
+            set__volume=stock.volume,
+            set__market_cap=stock.market_cap,
+            set__pe_ratio=stock.pe_ratio,
+            set__dividend_yield=stock.dividend_yield,
+            set__found=stock.found,
+            set__timestamp=datetime.now(timezone.utc).isoformat()
+        )
