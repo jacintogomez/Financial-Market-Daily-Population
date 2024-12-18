@@ -1,5 +1,5 @@
 from celery import shared_task
-from .kafka_producer import send_message
+#from stock_api_backend.stocks_api.kafka.kafka_producer import send_message
 from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data
 from .interfaces.mongodb_handler import save_asset_to_mongo,save_market_to_mongo
 
@@ -20,5 +20,5 @@ def async_market_population():
     for market in markets[:3]:
         save_market_to_mongo(market)
         populate_market_stocks.delay(market['Code'])
-    send_message('market_data','population_complete','Database population bas been completed successfully')
+    #send_message('market_data','population_complete','Database population bas been completed successfully')
     return code
