@@ -21,14 +21,17 @@ def get_stock_data(request, symbol):
     try:
         response_code = 200
         for api in api_functions:
+            print('found api function')
             response_code, stock = api(symbol)
             if response_code == 200 and stock is not None:
                 if stock.found:
                     # Save to MongoDB
+                    print('upserting')
                     stock=Stock.upsert_stock(stock)
                     msg = 'Data retrieved successfully'
                 else:
                     msg = 'No data retrieved for symbol ' + symbol
+                print('making api response')
                 api_response = APIResponse(response_code, msg, stock.to_dict())
                 return JsonResponse(api_response.to_dict())
 

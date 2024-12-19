@@ -19,31 +19,34 @@ eodhd_api_prefix='https://eodhd.com/api/'
 
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
-    url1=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
-    url2=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
+    url1=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
+    url2=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
+    #url3=fmp_api_prefix+'historical/'+input_ticker+'?'+fmp_api_suffix
 
     response1=requests.get(url1)
-    stock=Stock(symbol=input_ticker,timestamp=datetime.now(timezone.utc).isoformat())
+    stock=Stock(symbol=input_ticker)
 
     if response1.status_code==200:
         data=response1.json()
         if isinstance(data,list) and data:
             stock.found=True
             stock.provider='FMP'
-            stock.price=data[0]['price']
-            stock.day_high=data[0]['dayHigh']
-            stock.day_low=data[0]['dayLow']
-            stock.open_price=data[0]['open']
-            stock.change=data[0]['change']
-            stock.percent_change=data[0]['changesPercentage']
-            stock.volume=data[0]['volume']
-            stock.pe_ratio=data[0]['pe']
+            stock.company=data[0]['companyName']
+            stock.industry=data[0]['industry']
+            stock.sector=data[0]['sector']
+            stock.country=data[0]['country']
+            stock.currency=data[0]['currency']
+            stock.market_cap=data[0]['mktCap']
+            stock.dividend=data[0]['lastDiv']
+            print('data put in')
     response2=requests.get(url2)
     if response2.status_code==200:
         data=response2.json()
         if isinstance(data,list) and data:
-            stock.market_cap=data[0]['mktCap']
-            stock.dividend_yield=data[0]['lastDiv']
+            stock.eps=data[0]['eps']
+            stock.pe_ratio=data[0]['pe']
+            stock.shares_outstanding=data[0]['sharesOutstanding']
+    print(stock.to_dict())
     return max(response1.status_code,response2.status_code),stock
 
 def fetch_stock_data_eodhd(input_ticker):
@@ -86,3 +89,4 @@ def fetch_market_exchange_data():
     if response.status_code==200:
         return 200,response.json()
     return response.status_code,None
+
