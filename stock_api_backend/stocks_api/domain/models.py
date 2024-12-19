@@ -8,7 +8,6 @@ class Stock(Document):
     symbol=StringField(max_length=20,required=True,unique=True)
     data=DictField()
     provider=StringField(max_length=20)
-    found=BooleanField(default=False)
     meta={
         'collection':COLLECTION,
         'indexes':[
@@ -20,7 +19,6 @@ class Stock(Document):
             'symbol': self.symbol,
             'data': self.data or None,
             'provider': self.provider or None,
-            'found': self.found,
         }
     @classmethod
     def upsert_stock(cls,symbol,new_data):

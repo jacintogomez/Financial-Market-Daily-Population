@@ -30,6 +30,7 @@ def save_market_to_mongo(market):
 def is_asset_in_mongo(symbol):
     query={'Symbol':symbol}
     asset=assets_collection.find_one(query)
+    print('asset',asset)
     return asset is not None #TODO do we need an APIResponse for this?
     # if asset:
     #     response=APIResponse(200,f'Asset with symbol {symbol} found',True)
