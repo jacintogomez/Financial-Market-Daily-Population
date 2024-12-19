@@ -2,7 +2,7 @@ from urllib import response
 import requests
 from decouple import config
 from datetime import datetime,timezone
-from ..domain.models import Stock
+from ..domain.models import Asset
 from ..interfaces.mongodb_handler import is_asset_in_mongo
 
 # Environment variable setup
@@ -43,7 +43,7 @@ def eod_contains(symbol):
 def fetch_stock_data(input_ticker,provider):
     today=datetime.now().strftime('%Y-%m-%d')
 
-    stock=Stock(symbol=input_ticker,provider=provider)
+    stock=Asset(symbol=input_ticker,provider=provider,collection='crypto')
     stock_data={'data':{}}
     urls=fmp_urls if provider=='FMP' else eod_urls
     data_retrieved=False
@@ -66,7 +66,7 @@ def fetch_stock_data(input_ticker,provider):
 
     if data_retrieved:
         print('upserting')
-        stock.upsert_stock(input_ticker,stock_data['data'])
+        stock.upsert_asset(input_ticker,stock_data['data'],'crypto')
     print(stock.to_dict())
     return 200,stock
 

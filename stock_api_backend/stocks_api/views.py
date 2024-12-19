@@ -9,7 +9,6 @@ from .interfaces.mongodb_handler import is_asset_in_mongo
 from bson import ObjectId
 from .tasks import async_market_population
 from django.http import JsonResponse
-from .domain.models import Stock
 
 api_url='https://localhost/stocks'
 
