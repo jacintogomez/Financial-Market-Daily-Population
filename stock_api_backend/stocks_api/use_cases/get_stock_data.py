@@ -1,9 +1,9 @@
 from urllib import response
-
 import requests
 from decouple import config
 from datetime import datetime,timezone
 from ..domain.models import Stock
+from ..interfaces.mongodb_handler import is_asset_in_mongo
 
 # Environment variable setup
 
@@ -14,10 +14,18 @@ eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 fmp_api_prefix='https://financialmodelingprep.com/api/'
 eodhd_api_prefix='https://eodhd.com/api/'
 
-all_urls=[
+fmp_urls=[
     'v3/quote/',
     'v4/pre-post-market-trade/',
 ]
+
+def fmp_contains(symbol):
+    temp=is_asset_in_mongo(symbol)
+    if temp:
+        print('asset is in mongodb')
+    else:
+        print('asset is not in mongodb')
+    return temp
 
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
@@ -25,7 +33,7 @@ def fetch_stock_data_fmp(input_ticker):
     stock=Stock(symbol=input_ticker,provider='FMP')
     stock_data={'data':{}}
 
-    for url in all_urls:
+    for url in fmp_urls:
         full_url=f'{fmp_api_prefix}{url}{input_ticker}?{fmp_api_suffix}'
         print('full_url=',full_url)
         response=requests.get(full_url)

@@ -27,6 +27,16 @@ def save_market_to_mongo(market):
     response=APIResponse(200,f'Saved market with code {market["Code"]} to exchanges collection',None)
     return JsonResponse(response.to_dict())
 
+def is_asset_in_mongo(symbol):
+    query={'Symbol':symbol}
+    asset=assets_collection.find_one(query)
+    return asset is not None #TODO do we need an APIResponse for this?
+    # if asset:
+    #     response=APIResponse(200,f'Asset with symbol {symbol} found',True)
+    # else:
+    #     response=APIResponse(200,f'Asset with symbol {symbol} not found',False)
+    # return JsonResponse(response.to_dict())
+
 def fetch_from_mongo_collection(market):
     # {} is used to find all documents; no filters
     # {'_id':0} ignores the MongoDB mandatory _id field

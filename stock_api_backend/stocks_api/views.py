@@ -2,7 +2,7 @@ import json
 from django.shortcuts import render
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market
+from .use_cases.get_stock_data import fetch_stock_data_fmp,fetch_stock_data_eodhd,fetch_market_exchange_data,fetch_all_symbols_from_market,fmp_contains
 from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo
 from .utils import APIResponse, APIResponseRenderer
 from bson import ObjectId
@@ -11,34 +11,34 @@ from django.http import JsonResponse
 from .domain.models import Stock
 
 api_url='https://localhost/stocks'
-api_functions=[fetch_stock_data_fmp]
+api_functions=[fetch_stock_data_fmp,fetch_stock_data_eodhd]
 
 @api_view(['GET'])
 @renderer_classes([APIResponseRenderer])
-def get_stock_data(request, symbol):
+def get_stock_data(request,symbol):
     """Takes in stock symbol and produces a dictionary with the information
     in the StockData class, also saving to the database"""
     try:
-        response_code = 200
-        for api in api_functions:
-            print('found api function')
-            response_code, stock = api(symbol)
-            if response_code == 200 and stock is not None:
-                if stock.found:
-                    # Save to MongoDB
-                    print('upserting')
-                    stock=Stock.upsert_stock(stock)
-                    msg = 'Data retrieved successfully'
-                else:
-                    msg = 'No data retrieved for symbol ' + symbol
-                print('making api response')
-                api_response = APIResponse(response_code, msg, stock.to_dict())
-                return JsonResponse(api_response.to_dict())
+        response_code=404
+        api=fetch_stock_data_fmp if fmp_contains(symbol) else fetch_stock_data_eodhd
+        print('found api function')
+        response_code,stock=api(symbol)
+        if response_code==200 and stock is not None:
+            if stock.found:
+                # Save to MongoDB
+                print('upserting')
+                stock=Stock.upsert_stock(stock)
+                msg='Data retrieved successfully'
+            else:
+                msg='No data retrieved for symbol '+symbol
+            print('making api response')
+            api_response=APIResponse(response_code,msg,stock.to_dict())
+            return JsonResponse(api_response.to_dict())
 
-        failure_response = APIResponse(404, f'Data not retrieved for symbol {symbol}', None)
+        failure_response=APIResponse(404,f'Data not retrieved for symbol {symbol}', None)
         return JsonResponse(failure_response.to_dict())
     except Exception as e:
-        error_response = APIResponse(500, f'Internal server error: {str(e)}', None)
+        error_response=APIResponse(500, f'Internal server error: {str(e)}', None)
         return JsonResponse(error_response.to_dict())
 
 @api_view(['GET'])
