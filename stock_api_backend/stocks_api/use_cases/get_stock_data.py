@@ -11,44 +11,36 @@ fmp_api_suffix='apikey='+config('FMP_API_KEY')
 eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
 # API Urls
-fmp_api_prefix='https://financialmodelingprep.com/api/v3/'
+fmp_api_prefix='https://financialmodelingprep.com/api/'
 eodhd_api_prefix='https://eodhd.com/api/'
 
-#FMP and EOD require different inputs for the API requests
-#Below function pre-processes stock data taken from the API to return identical result formats
+all_urls=[
+    'v3/quote/',
+    'v4/pre-post-market-trade/',
+]
 
 def fetch_stock_data_fmp(input_ticker):
     today=datetime.now().strftime('%Y-%m-%d')
-    url1=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
-    url2=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
-    #url3=fmp_api_prefix+'historical/'+input_ticker+'?'+fmp_api_suffix
 
-    response1=requests.get(url1)
-    stock=Stock(symbol=input_ticker)
+    stock=Stock(symbol=input_ticker,provider='FMP')
+    stock_data={'data':{}}
 
-    if response1.status_code==200:
-        data=response1.json()
-        if isinstance(data,list) and data:
-            stock.found=True
-            stock.provider='FMP'
-            stock.company=data[0]['companyName']
-            stock.industry=data[0]['industry']
-            stock.sector=data[0]['sector']
-            stock.country=data[0]['country']
-            stock.currency=data[0]['currency']
-            stock.market_cap=data[0]['mktCap']
-            stock.dividend=data[0]['lastDiv']
-            stock.technicals=data[0]
-            print('data put in')
-    response2=requests.get(url2)
-    if response2.status_code==200:
-        data=response2.json()
-        if isinstance(data,list) and data:
-            stock.eps=data[0]['eps']
-            stock.pe_ratio=data[0]['pe']
-            stock.shares_outstanding=data[0]['sharesOutstanding']
+    for url in all_urls:
+        full_url=f'{fmp_api_prefix}{url}{input_ticker}?{fmp_api_suffix}'
+        print('full_url=',full_url)
+        response=requests.get(full_url)
+        if response.status_code==200:
+            apidata=response.json()
+            print('apidata=',apidata)
+            key=url.split('/')[-2]
+            if isinstance(apidata,list) and apidata:
+                print('key is ',key)
+                stock_data['data'][key]=apidata[0]
+            elif apidata:
+                stock_data['data'][key]=apidata
+    stock.upsert_stock(input_ticker,stock_data['data'])
     print(stock.to_dict())
-    return max(response1.status_code,response2.status_code),stock
+    return 200,stock
 
 def fetch_stock_data_eodhd(input_ticker):
     url='https://eodhd.com/api/real-time/'+input_ticker+eodhd_api_suffix
