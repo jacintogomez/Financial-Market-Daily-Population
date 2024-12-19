@@ -38,6 +38,7 @@ def fetch_stock_data_fmp(input_ticker):
             stock.currency=data[0]['currency']
             stock.market_cap=data[0]['mktCap']
             stock.dividend=data[0]['lastDiv']
+            stock.technicals=data[0]
             print('data put in')
     response2=requests.get(url2)
     if response2.status_code==200:

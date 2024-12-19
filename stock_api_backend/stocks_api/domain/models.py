@@ -1,5 +1,5 @@
 from mongoengine import Document, EmbeddedDocument
-from mongoengine import StringField, DecimalField, IntField, DateTimeField, BooleanField, EmbeddedDocumentField
+from mongoengine import StringField, DecimalField, IntField, DateTimeField, BooleanField, EmbeddedDocumentField, DictField
 from datetime import datetime,timezone
 
 COLLECTION='stock-backend-collection'
@@ -29,6 +29,7 @@ class Stock(Document):
     market_cap=IntField()
     shares_outstanding=IntField()
     fundamentals=EmbeddedDocumentField(Fundamentals)
+    technicals=DictField()
     provider=StringField(max_length=20)
     found=BooleanField(default=False)
     meta={
@@ -48,6 +49,7 @@ class Stock(Document):
             'market_cap': self.market_cap if self.market_cap else None,
             'shares_outstanding': self.shares_outstanding if self.shares_outstanding else None,
             'fundamentals': self.fundamentals.to_dict() if self.fundamentals else None,
+            'technicals': self.technicals or None,
             'provider': self.provider if self.provider else None,
             'found': self.found,
         }
@@ -64,6 +66,7 @@ class Stock(Document):
             set__market_cap=stock.market_cap,
             set__shares_outstanding=stock.shares_outstanding,
             set__fundamentals=stock.fundamentals,
+            set__technicals=stock.technicals,
             set__provider=stock.provider,
             set__found=stock.found,
         )
