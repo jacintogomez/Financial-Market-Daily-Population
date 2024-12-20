@@ -22,10 +22,10 @@ GLOBAL_LOGS=os.path.join(BASE_DIR,'global_logs.log')
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1ue(z+l@p9+%-)e-^s#dp=m61ko86$3sl#o#5ad@=cvg31luw%'
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG_MODE")==True
 
 ALLOWED_HOSTS = [
     'localhost',
