@@ -1,16 +1,4 @@
 from datetime import datetime, timezone
-from typing import Generic, Optional, TypeVar
-from rest_framework.renderers import JSONRenderer
-from django.http import HttpResponse
-import json
-from decimal import Decimal
-
-class APIResponseRenderer(JSONRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if hasattr(data, 'to_dict'):
-            response_data = data.to_dict()
-            return super().render(response_data, accepted_media_type, renderer_context)
-        return super().render(data, accepted_media_type, renderer_context)
 
 class FundamentalsData:
     def __init__(self):

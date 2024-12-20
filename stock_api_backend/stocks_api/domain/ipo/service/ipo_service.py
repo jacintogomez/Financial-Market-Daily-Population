@@ -1,6 +1,5 @@
 from decouple import config
 import requests
-from ..model.models import IPO
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'

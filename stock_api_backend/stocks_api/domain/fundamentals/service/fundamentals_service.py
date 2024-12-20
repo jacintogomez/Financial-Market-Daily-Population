@@ -1,6 +1,5 @@
 from decouple import config
 import requests
-from ..model.models import Fundamentals
 
 eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
