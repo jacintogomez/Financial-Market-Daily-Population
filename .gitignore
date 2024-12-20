@@ -4,3 +4,12 @@ venv
 # Ignore Python bytecode files
 __pycache__/
 *.pyc
+
+# other ignores
+.env
+.idea
+.venv
+django_error.log
+global_logs.log
+pip_installs.txt
+dump.rdb
