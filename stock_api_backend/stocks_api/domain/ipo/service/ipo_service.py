@@ -8,7 +8,7 @@ fmp_api_prefix='https://financialmodelingprep.com/api/'
 urls=[
     'v4/ipo-calendar-confirmed',
     'v4/ipo-calendar-prospectus',
-    #'v3/ipo-calendar',
+    'v3/ipo-calendar',
 ]
 
 def fetch_ipo_calendar_data():
@@ -23,7 +23,6 @@ def fetch_ipo_calendar_data():
             key=url.split('/')[-1]
             print('key is ',key)
             if isinstance(apidata,list) and apidata:
-                ipo_data['data'][key]=apidata[0]
-            elif apidata:
+                print(apidata[0])
                 ipo_data['data'][key]=apidata
     return 200,ipo_data
