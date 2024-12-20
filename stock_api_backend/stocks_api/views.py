@@ -69,8 +69,8 @@ def display_all_symbols(request):
 @api_view(['POST'])
 def update_all_collections(request):
     ipo_response,ipo_data=fetch_ipo_calendar_data()
-    ipo=IPO(symbol='IPO',provider='FMP')
-    ipo.upsert_asset('IPO',ipo_data)
+    ipo=IPO(symbol='IPO Calendar',provider='FMP')
+    ipo.upsert_asset('IPO Calendar',ipo_data['IPO Confirmed'],ipo_data['IPO Prospectus'])
     #fundamentals_response,fundamentals_data=fetch_fundamentals_data()
     display=APIResponse(200,'updated',None)
     return JsonResponse(display.to_dict())
