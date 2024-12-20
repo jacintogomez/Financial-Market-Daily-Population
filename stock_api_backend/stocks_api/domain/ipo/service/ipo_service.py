@@ -12,17 +12,22 @@ urls=[
 ]
 
 def fetch_ipo_calendar_data():
-    ipo_data={'data':{}}
-    for url in urls:
-        full_url=f'{fmp_api_prefix}{url}?{fmp_api_suffix}'
-        print('full_url=',full_url)
-        response=requests.get(full_url)
-        if response.status_code==200:
-            apidata=response.json()
-            #print('apidata=',apidata)
-            key=url.split('/')[-1]
-            print('key is ',key)
-            if isinstance(apidata,list) and apidata:
-                print(apidata[0])
-                ipo_data['data'][key]=apidata
+    ipo_data={
+        'IPO Confirmed':{},
+        'IPO Prospectus':{},
+    }
+    confirmed_url=f'{fmp_api_prefix}v4/ipo-calendar-confirmed?{fmp_api_suffix}'
+    prospectus_url=f'{fmp_api_prefix}v4/ipo-calendar-prospectus?{fmp_api_suffix}'
+    response1=requests.get(confirmed_url)
+    response2=requests.get(prospectus_url)
+    if response1.status_code==200:
+        apidata=response1.json()
+        #print('apidata=',apidata)
+        if isinstance(apidata,list) and apidata:
+            ipo_data['IPO Confirmed']=apidata
+    if response2.status_code==200:
+        apidata=response2.json()
+        #print('apidata=',apidata)
+        if isinstance(apidata,list) and apidata:
+            ipo_data['IPO Prospectus']=apidata
     return 200,ipo_data

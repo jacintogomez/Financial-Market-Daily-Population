@@ -70,7 +70,7 @@ def display_all_symbols(request):
 def update_all_collections(request):
     ipo_response,ipo_data=fetch_ipo_calendar_data()
     ipo=IPO(symbol='IPO',provider='FMP')
-    ipo.upsert_asset('IPO',ipo_data['data'])
+    ipo.upsert_asset('IPO',ipo_data)
     #fundamentals_response,fundamentals_data=fetch_fundamentals_data()
     display=APIResponse(200,'updated',None)
     return JsonResponse(display.to_dict())
