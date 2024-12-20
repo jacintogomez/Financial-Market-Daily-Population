@@ -19,7 +19,7 @@ class IPO(Document):
             'provider': self.provider or None,
         }
     @classmethod
-    def upsert_stock(cls,symbol,new_data):
+    def upsert_asset(cls,symbol,new_data):
         return cls.objects(symbol=symbol).modify(
             upsert=True,
             new=True,

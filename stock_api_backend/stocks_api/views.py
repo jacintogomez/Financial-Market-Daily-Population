@@ -4,14 +4,12 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
 from .use_cases.get_stock_data import fetch_stock_data_from_api,fetch_market_exchange_data,fetch_all_symbols_from_market,fmp_contains,eod_contains
 from .use_cases.post_stock_data import post_stock_data_to_collection
-from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo
+from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo,display_all_symbols_from_mongo
 from .utils import APIResponse, APIResponseRenderer
 from .interfaces.mongodb_handler import is_asset_in_mongo
 from bson import ObjectId
 from .tasks import async_market_population
 from django.http import JsonResponse
-
-api_url='https://localhost/stocks'
 
 @api_view(['GET'])
 @renderer_classes([APIResponseRenderer])
@@ -55,6 +53,22 @@ def push_to_db_test(request,symbol,provider,collection):
     post_stock_data_to_collection(symbol,provider,collection,data)
     dbresp=APIResponse(num,'this is just a test',None)
     return JsonResponse(dbresp.to_dict())
+
+@api_view(['GET'])
+def display_all_symbols(request):
+    display_all_symbols_from_mongo()
+    display=APIResponse(200,'displayed all tickers',None)
+    return JsonResponse(display.to_dict())
+
+@api_view(['POST'])
+def update_all_collections(request):
+    pass
+    # iterate through all symbols
+    # for each symbol:
+    #     check its category
+    #     gather the updated info from it via api
+    #     push the updated info to the db
+    # return
 
 #@api_view(['GET'])
 def get_assets_under_market(market_ticker):
