@@ -23,6 +23,8 @@ eod_urls=[
     'fundamentals/',
 ]
 
+market_category_map={}
+
 def fmp_contains(symbol):
     temp=is_asset_in_mongo(symbol)
     if temp:
@@ -40,16 +42,14 @@ def eod_contains(symbol):
     #     print('asset is not in mongodb under EOD')
     # return temp,exchange
 
-def fetch_stock_data(input_ticker,provider):
+def fetch_stock_data_from_api(symbol,provider):
     today=datetime.now().strftime('%Y-%m-%d')
 
-    stock=Asset(symbol=input_ticker,provider=provider,collection='crypto')
     stock_data={'data':{}}
     urls=fmp_urls if provider=='FMP' else eod_urls
-    data_retrieved=False
 
     for url in urls:
-        full_url=f'{fmp_api_prefix}{url}{input_ticker}?{fmp_api_suffix}' if provider=='FMP' else f'{eod_api_prefix}{url}{input_ticker}?{eod_api_suffix}'
+        full_url=f'{fmp_api_prefix}{url}{symbol}?{fmp_api_suffix}' if provider=='FMP' else f'{eod_api_prefix}{url}{symbol}?{eod_api_suffix}'
         print('full_url=',full_url)
         response=requests.get(full_url)
         if response.status_code==200:
@@ -57,18 +57,12 @@ def fetch_stock_data(input_ticker,provider):
             print('apidata=',apidata)
             key=url.split('/')[-2]
             if isinstance(apidata,list) and apidata:
-                data_retrieved=True
                 print('key is ',key)
                 stock_data['data'][key]=apidata[0]
             elif apidata:
-                data_retrieved=True
                 stock_data['data'][key]=apidata
 
-    if data_retrieved:
-        print('upserting')
-        stock.upsert_asset(input_ticker,stock_data['data'],'crypto')
-    print(stock.to_dict())
-    return 200,stock
+    return 200,stock_data
 
 def fetch_all_symbols_from_market(market_ticker):
     """Returns response object in format:

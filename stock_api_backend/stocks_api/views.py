@@ -2,7 +2,8 @@ import json
 from django.shortcuts import render
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from .use_cases.get_stock_data import fetch_stock_data,fetch_market_exchange_data,fetch_all_symbols_from_market,fmp_contains,eod_contains
+from .use_cases.get_stock_data import fetch_stock_data_from_api,fetch_market_exchange_data,fetch_all_symbols_from_market,fmp_contains,eod_contains
+from .use_cases.post_stock_data import post_stock_data_to_collection
 from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo
 from .utils import APIResponse, APIResponseRenderer
 from .interfaces.mongodb_handler import is_asset_in_mongo
@@ -25,7 +26,7 @@ def get_stock_data(request,symbol):
         #if is_asset_in_mongo(symbol):
         if True:
             print('found api function')
-            response_code,stock=fetch_stock_data(symbol,provider)
+            response_code,stock=fetch_stock_data_from_api(symbol,provider)
 
             if response_code==200 and stock is not None:
                 msg='Data retrieved successfully'
@@ -49,8 +50,11 @@ def get_multi_stock_data(request,symbols):
     return Response(result)
 
 @api_view(['GET'])
-def get_fundamentals(request):
-    pass
+def push_to_db_test(request,symbol,provider,collection):
+    num,data=fetch_stock_data_from_api(symbol,provider)
+    post_stock_data_to_collection(symbol,provider,collection,data)
+    dbresp=APIResponse(num,'this is just a test',None)
+    return JsonResponse(dbresp.to_dict())
 
 #@api_view(['GET'])
 def get_assets_under_market(market_ticker):
