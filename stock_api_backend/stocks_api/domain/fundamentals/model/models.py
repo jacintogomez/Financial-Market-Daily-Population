@@ -4,6 +4,7 @@ from mongoengine import StringField, DictField
 class Fundamentals(Document):
     symbol=StringField(max_length=20,required=True,unique=True)
     data=DictField()
+    collection='fundamentals'
     provider=StringField(max_length=20)
     meta={
         'collection':'fundamentals',

@@ -16,6 +16,13 @@ from .domain.ipo.model.models import IPO
 from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
 from .domain.fundamentals.model.models import Fundamentals
 from django.http import JsonResponse
+from pymongo import MongoClient
+from decouple import config
+
+mongo_uri=config('MONGO_URI')
+client=MongoClient(mongo_uri)
+db=client[config('MONGODB_DB_NAME')]
+assets_collection=db['market_symbols']
 
 @api_view(['GET'])
 @renderer_classes([APIResponseRenderer])
@@ -68,10 +75,16 @@ def display_all_symbols(request):
 
 @api_view(['POST'])
 def update_all_collections(request):
-    ipo_response,ipo_data=fetch_ipo_calendar_data()
-    ipo=IPO(symbol='IPO Calendar',provider='FMP')
-    ipo.upsert_asset('IPO Calendar',ipo_data['IPO Confirmed'],ipo_data['IPO Prospectus'])
-    #fundamentals_response,fundamentals_data=fetch_fundamentals_data()
+    # ipo_response,ipo_data=fetch_ipo_calendar_data()
+    # ipo=IPO(symbol='IPO Calendar',provider='FMP')
+    # ipo.upsert_asset('IPO Calendar',ipo_data['IPO Confirmed'],ipo_data['IPO Prospectus'])
+    cursor=assets_collection.find(batch_size=100)
+    for symb in cursor:
+        symbol=symb['Code']
+        print(symbol)
+        fundamentals_response,fundamentals_data=fetch_fundamentals_data(symbol)
+        fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+        fundamentals.upsert_asset(symbol,fundamentals_data)
     display=APIResponse(200,'updated',None)
     return JsonResponse(display.to_dict())
 
