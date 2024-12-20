@@ -53,7 +53,6 @@ def drop_collections_from_mongo():
     deletions=[]
     print('dropping all')
     collections=[exchanges_collection,assets_collection]
-    #collections=['US','TO','LSE']
     for collection in collections:
         db.drop_collection(collection)
         deletions.append(collection)

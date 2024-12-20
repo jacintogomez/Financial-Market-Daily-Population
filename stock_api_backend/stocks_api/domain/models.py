@@ -2,7 +2,7 @@ from mongoengine import Document, EmbeddedDocument
 from mongoengine import StringField, DecimalField, IntField, DateTimeField, BooleanField, EmbeddedDocumentField, DictField
 from datetime import datetime,timezone
 
-COLLECTION='stock-backend-collection'
+COLLECTION='fundamentals-backend-collection'
 
 class Asset(Document):
     symbol=StringField(max_length=20,required=True,unique=True)

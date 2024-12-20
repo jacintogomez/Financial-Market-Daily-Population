@@ -8,11 +8,10 @@ from ..interfaces.mongodb_handler import is_asset_in_mongo
 # Environment variable setup
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
-eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
-
-# API Urls
 fmp_api_prefix='https://financialmodelingprep.com/api/'
+
 eod_api_prefix='https://eodhd.com/api/'
+eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
 fmp_urls=[
     'v3/quote/',

@@ -2,6 +2,8 @@ import json
 from django.shortcuts import render
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
+
+from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
 from .use_cases.get_stock_data import fetch_stock_data_from_api,fetch_market_exchange_data,fetch_all_symbols_from_market,fmp_contains,eod_contains
 from .use_cases.post_stock_data import post_stock_data_to_collection
 from .interfaces.mongodb_handler import fetch_from_mongo_collection,drop_collections_from_mongo,display_all_symbols_from_mongo
@@ -9,12 +11,16 @@ from .utils import APIResponse, APIResponseRenderer
 from .interfaces.mongodb_handler import is_asset_in_mongo
 from bson import ObjectId
 from .tasks import async_market_population
+from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
+from .domain.ipo.model.models import IPO
+from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
+from .domain.fundamentals.model.models import Fundamentals
 from django.http import JsonResponse
 
 @api_view(['GET'])
 @renderer_classes([APIResponseRenderer])
 def get_stock_data(request,symbol):
-    """Takes in stock symbol and produces a dictionary with the information
+    """Takes in fundamentals symbol and produces a dictionary with the information
     in the StockData class, also saving to the database"""
     try:
         response_code=404
@@ -62,13 +68,12 @@ def display_all_symbols(request):
 
 @api_view(['POST'])
 def update_all_collections(request):
-    pass
-    # iterate through all symbols
-    # for each symbol:
-    #     check its category
-    #     gather the updated info from it via api
-    #     push the updated info to the db
-    # return
+    ipo_response,ipo_data=fetch_ipo_calendar_data()
+    ipo=IPO(symbol='IPO',provider='FMP')
+    ipo.upsert_asset('IPO',ipo_data['data'])
+    #fundamentals_response,fundamentals_data=fetch_fundamentals_data()
+    display=APIResponse(200,'updated',None)
+    return JsonResponse(display.to_dict())
 
 #@api_view(['GET'])
 def get_assets_under_market(market_ticker):
@@ -82,6 +87,6 @@ def get_market_exchange_data(request):
 
 @api_view(['DELETE'])
 def clear_test_collections(request):
-    # This is just for testing purposes obviously, will not be in the real thing
+    # This is just for testing purposes, will not be in the real thing
     drop_collections_from_mongo()
     return Response('Deleted collections')

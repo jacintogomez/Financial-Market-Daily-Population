@@ -4,6 +4,7 @@ from mongoengine import StringField, DictField
 class IPO(Document):
     symbol=StringField(max_length=20,required=True,unique=True)
     data=DictField()
+    collection_name='ipo'
     provider=StringField(max_length=20)
     meta={
         'collection':'ipo',

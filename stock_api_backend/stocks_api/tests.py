@@ -19,7 +19,7 @@ class Tests(TestCase):
         assert response_dict['status_code']==200
         assert response_dict['message']==message
 
-    #TODO rewrite this test: doesnt work because fetch stock data fmp has 2 get requests so the first is overridden
+    #TODO rewrite this test: doesnt work because fetch fundamentals data fmp has 2 get requests so the first is overridden
     # def test_fetch_stock_data_fmp_success(self):
     #     with patch('requests.get') as mock_get:
     #         mock_response1=mock_get.return_value

@@ -1,12 +1,12 @@
 from mongoengine import Document
 from mongoengine import StringField, DictField
 
-class Stock(Document):
+class Fundamentals(Document):
     symbol=StringField(max_length=20,required=True,unique=True)
     data=DictField()
     provider=StringField(max_length=20)
     meta={
-        'collection':'stocks',
+        'collection':'fundamentals',
         'indexes':[
             {'fields':['symbol'],'unique':True},
         ],
