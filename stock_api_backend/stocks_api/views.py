@@ -8,6 +8,8 @@ from .utils import APIResponse
 from .tasks import async_market_population
 from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
 from .domain.fundamentals.model.models import Fundamentals
+from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
+from .domain.ipo.model.models import IPO
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -51,21 +53,29 @@ def display_all_symbols(request):
 
 @api_view(['POST'])
 def update_all_collections(request):
-    # ipo_response,ipo_data=fetch_ipo_calendar_data()
-    # ipo=IPO(symbol='IPO Calendar',provider='FMP')
-    # ipo.upsert_asset('IPO Calendar',ipo_data['IPO Confirmed'],ipo_data['IPO Prospectus'])
-    cursor=assets_collection.find(batch_size=100)
+
     msg='none'
-    fundamentals_response=0
-    for symb in cursor:
-        symbol=symb['Code']
-        print(symbol)
-        fundamentals_response=fetch_fundamentals_data(symbol)
-        print('got obj')
-        fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-        if fundamentals_response.status_code==200:
-            fundamentals.upsert_asset(symbol,fundamentals_response.data)
-    return JsonResponse(fundamentals_response.to_dict())
+    ipo_response=fetch_ipo_calendar_data()
+    ipo=IPO(symbol='IPO Calendar',provider='FMP')
+    if ipo_response.status_code==200 or ipo_response.status_code==206:
+        print('upserting ipos')
+        print(ipo_response.to_dict())
+        ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
+    return JsonResponse(ipo_response.to_dict())
+
+    # cursor=assets_collection.find(batch_size=100)
+    # msg='none'
+    # fundamentals_response=0
+    # for symb in cursor:
+    #     symbol=symb['Code']
+    #     print(symbol)
+    #     fundamentals_response=fetch_fundamentals_data(symbol)
+    #     print('got obj')
+    #     fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+    #     if fundamentals_response.status_code==200:
+    #         fundamentals.upsert_asset(symbol,fundamentals_response.data)
+    # print('returning from ipo data collection')
+    # return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
