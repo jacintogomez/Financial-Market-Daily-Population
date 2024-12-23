@@ -18,11 +18,7 @@ def validate_api_response(data):
     print('validating ipos')
     if data is None:
         return None
-    if isinstance(data,list):
-        if not data:
-            return None
-        return data[0]
-    if isinstance(data,dict):
+    if isinstance(data,list) or isinstance(data,dict):
         if not data:
             return None
         return data
@@ -61,13 +57,14 @@ def fetch_ipo_calendar_data():
         for url in urls:
             endpoint_key=re.split(r'[/?]',url)[-1]
             print('endpoint key is',endpoint_key)
-            status,data,error=make_request(url,endpoint_key)
+            status,error,data=make_request(url,endpoint_key)
             print('status is',status)
             if status:
                 ipo_data[endpoint_key]=data
                 successes+=1
             else:
                 errors.append(endpoint_key)
+        print('initial ipo data',ipo_data)
         if successes==0:
             print('no ipo data')
             return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch IPO data',{})
