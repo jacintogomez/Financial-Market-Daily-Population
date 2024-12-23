@@ -1,5 +1,9 @@
 from decouple import config
+from http import HTTPStatus
 import requests
+from requests import RequestException
+
+from ....utils import APIResponse
 
 eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
@@ -8,18 +12,65 @@ urls=[
     'fundamentals/',
 ]
 
+def validate_api_response(data):
+    print('validating')
+    if data is None:
+        return None
+    if isinstance(data,list):
+        if not data:
+            return None
+        return data[0]
+    if isinstance(data,dict):
+        if not data:
+            return None
+        return data
+    return None
+
 def fetch_fundamentals_data(symbol):
+    if not symbol:
+        APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     fundamentals_data={}
-    for url in urls:
+    def make_request(url,endpoint):
         full_url=f'{eod_api_prefix}{url}{symbol}?{eod_api_suffix}'
         print('full_url=',full_url)
-        response=requests.get(full_url)
-        if response.status_code==200:
-            apidata=response.json()
-            key=url.split('/')[-2]
-            if isinstance(apidata,list) and apidata:
-                fundamentals_data[key]=apidata[0]
-            elif apidata:
-                fundamentals_data[key]=apidata
-
-    return 200,fundamentals_data
+        try:
+            response=requests.get(full_url)
+            if response.status_code==HTTPStatus.NOT_FOUND:
+                return False,None,f'Endpoint {url} not found'
+            response.raise_for_status()
+            try:
+                data=response.json()
+            except requests.exceptions.JSONDecodeError as e:
+                return False,None,f'Invalid JSON response from {url}'
+            validate_data=validate_api_response(data)
+            if validate_data is not None:
+                return True,validate_data,''
+            return False,None,f'No valid data returned from {url}'
+        except requests.exceptions.HTTPError as e:
+            return False,None,f'HTTP error occurred from {url}'
+        except RequestException as e:
+            return False,None,f'Network error occurred from {url}'
+    try:
+        successes=0
+        total_endpoints=len(urls)
+        errors=[]
+        for url in urls:
+            endpoint_key=url.split('/')[-2]
+            print('name is ',endpoint_key)
+            status,data,error=make_request(url,endpoint_key)
+            print('status is ',status)
+            if status:
+                fundamentals_data[endpoint_key]=data
+                successes+=1
+            else:
+                errors.append(error)
+        if successes==0:
+            print('no fundamentals data')
+            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),{},f'Failed to fetch data for symbol {symbol}')
+        if not fundamentals_data:
+            return APIResponse(int(HTTPStatus.NO_CONTENT),{},f'No valid data received for symbol {symbol}')
+        if successes<total_endpoints:
+            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),fundamentals_data,f'Could not retrieve data for all {symbol} endpoints')
+        return APIResponse(int(HTTPStatus.OK),fundamentals_data,f'Successfully retrieved data for {symbol}')
+    except Exception as e:
+        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),{},f'Failed to fetch data for symbol {symbol}')

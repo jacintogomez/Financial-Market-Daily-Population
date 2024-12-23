@@ -55,14 +55,17 @@ def update_all_collections(request):
     # ipo=IPO(symbol='IPO Calendar',provider='FMP')
     # ipo.upsert_asset('IPO Calendar',ipo_data['IPO Confirmed'],ipo_data['IPO Prospectus'])
     cursor=assets_collection.find(batch_size=100)
+    msg='none'
+    fundamentals_response=0
     for symb in cursor:
         symbol=symb['Code']
         print(symbol)
-        fundamentals_response,fundamentals_data=fetch_fundamentals_data(symbol)
+        fundamentals_response=fetch_fundamentals_data(symbol)
+        print('got obj')
         fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-        fundamentals.upsert_asset(symbol,fundamentals_data)
-    display=APIResponse(200,'updated',None)
-    return JsonResponse(display.to_dict())
+        if fundamentals_response.status_code==200:
+            fundamentals.upsert_asset(symbol,fundamentals_response.data)
+    return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
