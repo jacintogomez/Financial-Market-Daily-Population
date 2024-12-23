@@ -13,7 +13,7 @@ urls=[
 ]
 
 def validate_api_response(data):
-    print('validating')
+    print('validating fundamentals')
     if data is None:
         return None
     if isinstance(data,list):
@@ -36,20 +36,20 @@ def fetch_fundamentals_data(symbol):
         try:
             response=requests.get(full_url)
             if response.status_code==HTTPStatus.NOT_FOUND:
-                return False,None,f'Endpoint {url} not found'
+                return False,f'Endpoint {url} not found',None
             response.raise_for_status()
             try:
                 data=response.json()
             except requests.exceptions.JSONDecodeError as e:
-                return False,None,f'Invalid JSON response from {url}'
+                return False,f'Invalid JSON response {e} from {url}',None
             validate_data=validate_api_response(data)
             if validate_data is not None:
-                return True,validate_data,''
-            return False,None,f'No valid data returned from {url}'
+                return True,'',validate_data
+            return False,f'No valid data returned from {url}',None
         except requests.exceptions.HTTPError as e:
-            return False,None,f'HTTP error occurred from {url}'
+            return False,f'HTTP error {e} occurred from {url}',None
         except RequestException as e:
-            return False,None,f'Network error occurred from {url}'
+            return False,f'Request exception {e} occurred from {url}',None
     try:
         successes=0
         total_endpoints=len(urls)
@@ -57,7 +57,7 @@ def fetch_fundamentals_data(symbol):
         for url in urls:
             endpoint_key=url.split('/')[-2]
             print('name is ',endpoint_key)
-            status,data,error=make_request(url,endpoint_key)
+            status,error,data=make_request(url,endpoint_key)
             print('status is ',status)
             if status:
                 fundamentals_data[endpoint_key]=data
@@ -66,11 +66,11 @@ def fetch_fundamentals_data(symbol):
                 errors.append(error)
         if successes==0:
             print('no fundamentals data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),{},f'Failed to fetch data for symbol {symbol}')
+            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch data for symbol {symbol}',{})
         if not fundamentals_data:
-            return APIResponse(int(HTTPStatus.NO_CONTENT),{},f'No valid data received for symbol {symbol}')
+            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid data received for symbol {symbol}',{})
         if successes<total_endpoints:
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),fundamentals_data,f'Could not retrieve data for all {symbol} endpoints')
-        return APIResponse(int(HTTPStatus.OK),fundamentals_data,f'Successfully retrieved data for {symbol}')
+            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all {symbol} endpoints: {errors}',fundamentals_data)
+        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved data for {symbol}',fundamentals_data)
     except Exception as e:
-        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),{},f'Failed to fetch data for symbol {symbol}')
+        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch data for symbol {symbol}, Exception: {e}',{})
