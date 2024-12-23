@@ -10,6 +10,6 @@ class APIResponse:
         return {
             'timestamp': self.timestamp,
             'status_code': self.status_code,
-            'data': self.data if self.data else None,
             'message': self.message,
+            'data': self.data if self.data else None,
         }

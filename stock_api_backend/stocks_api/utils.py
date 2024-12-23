@@ -1,11 +1,5 @@
 from datetime import datetime, timezone
 
-class FundamentalsData:
-    def __init__(self):
-        self.parameters=0
-    def convert_data_to_dict(self):
-        return self.__dict__
-
 class APIResponse:
     def __init__(self,code,message,data=None):
         self.timestamp=datetime.now(timezone.utc).isoformat()
@@ -16,8 +10,8 @@ class APIResponse:
         return {
             'timestamp': self.timestamp,
             'status_code': self.status_code,
-            'data': self.data if self.data else None,
             'message': self.message,
+            'data': self.data if self.data else None,
         }
 
 class ErrorDetails:

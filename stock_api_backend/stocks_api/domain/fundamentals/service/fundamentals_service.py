@@ -2,8 +2,7 @@ from decouple import config
 from http import HTTPStatus
 import requests
 from requests import RequestException
-
-from ....utils import APIResponse
+from ...apiresponse.model.models import APIResponse
 
 eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'

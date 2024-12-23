@@ -3,7 +3,7 @@ import requests
 from http import HTTPStatus
 import re
 from requests import RequestException
-from ....utils import APIResponse
+from ...apiresponse.model.models import APIResponse
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
