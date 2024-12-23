@@ -19,21 +19,14 @@ assets_collection=db['market_symbols']
 
 @api_view(['GET'])
 def get_stock_data(request,symbol):
-    """Takes in fundamentals symbol and produces a dictionary with the information
-    in the StockData class, also saving to the database"""
     try:
-        response_code=404
-        #api=fetch_stock_data_fmp if fmp_contains(symbol) else fetch_stock_data_eodhd
-        #provider='FMP' if fmp_contains(symbol) else 'EOD'
         provider='None'
-        #if is_asset_in_mongo(symbol):
         if True:
             print('found api function')
             response_code,stock=fetch_stock_data_from_api(symbol,provider)
 
             if response_code==200 and stock is not None:
                 msg='Data retrieved successfully'
-                print('making api response')
                 api_response=APIResponse(response_code,msg,stock.to_dict())
                 return JsonResponse(api_response.to_dict())
 

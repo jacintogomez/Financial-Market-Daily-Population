@@ -21,12 +21,10 @@ def fetch_ipo_calendar_data():
     response2=requests.get(prospectus_url)
     if response1.status_code==200:
         apidata=response1.json()
-        #print('apidata=',apidata)
         if isinstance(apidata,list) and apidata:
             ipo_data['IPO Confirmed']=apidata
     if response2.status_code==200:
         apidata=response2.json()
-        #print('apidata=',apidata)
         if isinstance(apidata,list) and apidata:
             ipo_data['IPO Prospectus']=apidata
     return 200,ipo_data

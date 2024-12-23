@@ -17,12 +17,9 @@ def fetch_fundamentals_data(symbol):
         if response.status_code==200:
             apidata=response.json()
             key=url.split('/')[-2]
-            print('key is',key)
             if isinstance(apidata,list) and apidata:
-                print('in first',apidata[0])
                 fundamentals_data[key]=apidata[0]
             elif apidata:
-                print('in second',apidata)
                 fundamentals_data[key]=apidata
 
     return 200,fundamentals_data
