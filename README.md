@@ -16,7 +16,7 @@ Steps to run locally:
 5. Run app `python manage.py runserver` and open on localhost
 
 
-Steps to setup async and webhook:
+Steps to set up async and webhook:
 1. Start Redis broker to accept async tasks `redis-server`
 2. Start Celery worker to handle async tasks `celery -A stock_api_backend worker --loglevel=info`
 3. Start Zookeeper `bin/zookeeper-server-start.sh config/zookeeper.properties`

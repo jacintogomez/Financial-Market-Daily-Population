@@ -13,10 +13,3 @@ class APIResponse:
             'message': self.message,
             'data': self.data if self.data else None,
         }
-
-class ErrorDetails:
-    def __init__(self,status,details,field):
-        self.status_code=status
-        self.details=details
-        self.field=field
-

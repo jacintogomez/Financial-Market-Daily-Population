@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +22,10 @@ GLOBAL_LOGS=os.path.join(BASE_DIR,'global_logs.log')
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1ue(z+l@p9+%-)e-^s#dp=m61ko86$3sl#o#5ad@=cvg31luw%'
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG_MODE")==True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -162,3 +163,6 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RESPONSE_CLASS': 'stocks_api.utils.APIResponse',
 }
+
+import mongoengine
+mongoengine.connect(config('MONGODB_DB_NAME'),host=config('MONGO_URI'))

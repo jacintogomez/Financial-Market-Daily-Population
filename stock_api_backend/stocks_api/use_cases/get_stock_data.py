@@ -1,57 +1,67 @@
 from urllib import response
-
 import requests
 from decouple import config
-from datetime import datetime
-from ..utils import StockData
+from datetime import datetime,timezone
+from ..domain.models import Asset
+from ..interfaces.mongodb_handler import is_asset_in_mongo
 
 # Environment variable setup
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
-eodhd_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
+fmp_api_prefix='https://financialmodelingprep.com/api/'
 
-# API Urls
-fmp_api_prefix='https://financialmodelingprep.com/api/v3/'
-eodhd_api_prefix='https://eodhd.com/api/'
+eod_api_prefix='https://eodhd.com/api/'
+eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
-#FMP and EOD require different inputs for the API requests
-#Below function pre-processes stock data taken from the API to return identical result formats
+fmp_urls=[
+    'v3/quote/',
+    'v4/pre-post-market-trade/',
+]
 
-def fetch_stock_data_fmp(input_ticker):
+eod_urls=[
+    'fundamentals/',
+]
+
+market_category_map={}
+
+def fmp_contains(symbol):
+    temp=is_asset_in_mongo(symbol)
+    if temp:
+        print('asset is in mongodb under FMP')
+    else:
+        print('asset is not in mongodb under FMP')
+    return temp
+
+def eod_contains(symbol):
+    pass
+    # temp,exchange=is_asset_in_mongo_if_so_get_exchange(symbol)
+    # if temp:
+    #     print('asset is in mongodb under EOD')
+    # else:
+    #     print('asset is not in mongodb under EOD')
+    # return temp,exchange
+
+def fetch_stock_data_from_api(symbol,provider):
     today=datetime.now().strftime('%Y-%m-%d')
-    url1=fmp_api_prefix+'quote/'+input_ticker+'?'+fmp_api_suffix
-    url2=fmp_api_prefix+'profile/'+input_ticker+'?'+fmp_api_suffix
 
-    response1=requests.get(url1)
-    stock_data=StockData(input_ticker)
+    stock_data={'data':{}}
+    urls=fmp_urls if provider=='FMP' else eod_urls
 
-    if response1.status_code==200:
-        data=response1.json()
-        if isinstance(data,list) and data:
-            stock_data.found=True
-            stock_data.provider='FMP'
-            stock_data.price=data[0]['price']
-            stock_data.day_high=data[0]['dayHigh']
-            stock_data.day_low=data[0]['dayLow']
-            stock_data.open_price=data[0]['open']
-            stock_data.change=data[0]['change']
-            stock_data.percent_change=data[0]['changesPercentage']
-            stock_data.volume=data[0]['volume']
-            stock_data.pe_ratio=data[0]['pe']
-    response2=requests.get(url2)
-    if response2.status_code==200:
-        data=response2.json()
-        if isinstance(data,list) and data:
-            stock_data.market_cap=data[0]['mktCap']
-            stock_data.dividend_yield=data[0]['lastDiv']
-    return max(response1.status_code,response2.status_code),stock_data
+    for url in urls:
+        full_url=f'{fmp_api_prefix}{url}{symbol}?{fmp_api_suffix}' if provider=='FMP' else f'{eod_api_prefix}{url}{symbol}?{eod_api_suffix}'
+        print('full_url=',full_url)
+        response=requests.get(full_url)
+        if response.status_code==200:
+            apidata=response.json()
+            print('apidata=',apidata)
+            key=url.split('/')[-2]
+            if isinstance(apidata,list) and apidata:
+                print('key is ',key)
+                stock_data['data'][key]=apidata[0]
+            elif apidata:
+                stock_data['data'][key]=apidata
 
-def fetch_stock_data_eodhd(input_ticker):
-    url='https://eodhd.com/api/real-time/'+input_ticker+eodhd_api_suffix
-    response=requests.get(url)
-    if response.status_code==200:
-        return 200,response.json()
-    return response.status_code,None
+    return 200,stock_data
 
 def fetch_all_symbols_from_market(market_ticker):
     """Returns response object in format:
@@ -64,7 +74,7 @@ def fetch_all_symbols_from_market(market_ticker):
         CountryIS02:
         CountryIS03:
     }"""
-    url=eodhd_api_prefix+'exchange-symbol-list/'+market_ticker+'?'+eodhd_api_suffix
+    url=eod_api_prefix+'exchange-symbol-list/'+market_ticker+'?'+eod_api_suffix
     response=requests.get(url)
     if response.status_code==200:
         return 200,response.json()
@@ -81,8 +91,9 @@ def fetch_market_exchange_data():
         Name:
         type:
     }"""
-    url=eodhd_api_prefix+'exchanges-list/?'+eodhd_api_suffix
+    url=eod_api_prefix+'exchanges-list/?'+eod_api_suffix
     response=requests.get(url)
     if response.status_code==200:
         return 200,response.json()
     return response.status_code,None
+
