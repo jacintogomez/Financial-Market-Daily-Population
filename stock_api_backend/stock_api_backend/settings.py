@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'stocks_api',
 ]
 
+WEBHOOK_URL=config('WEBHOOK_URL')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
