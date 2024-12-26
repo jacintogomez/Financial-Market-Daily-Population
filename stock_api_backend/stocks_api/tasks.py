@@ -26,6 +26,8 @@ def populate_market_stocks(self,market_ticker):
     try:
         code,symbols=fetch_all_symbols_from_market(market_ticker)
         symbol_errors=[]
+        if symbols is None or not symbols:
+            raise Exception(f'Data not found for asset with symbol {market_ticker}')
         for symbol in symbols[:5]:
             print('populating stock',symbol)
             try:
@@ -43,8 +45,6 @@ def populate_market_stocks(self,market_ticker):
 
 @shared_task(bind=True,base=WebhookTask)
 def async_market_population(self):
-    self.success_msg='Market data population completed successfully',
-    self.failure_msg='Market data population failed',
     print('starting population task')
     try:
         code,markets=fetch_market_exchange_data()
@@ -59,7 +59,7 @@ def async_market_population(self):
         # market_population_tasks=group(populate_market_stocks.s(market['Code']) for market in markets[:5])
         # result=group(market_population_tasks).apply_async()
         # result.get()
-        market_population_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_population_tasks=[populate_market_stocks.s(market['Code']+'str') for market in markets[:5]]
         callback=webhook_push.s(task_id=self.request.id)
         chord(market_population_tasks)(callback)
         return {
