@@ -1,10 +1,21 @@
-from celery import shared_task,group,chord
+from celery import shared_task,group,chord,chain
 from celery.result import GroupResult
 from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data
 from .interfaces.mongodb_handler import save_asset_to_mongo,save_market_to_mongo
 from .webhook_handler import WebhookTask
 from .domain.apiresponse.model.models import APIResponse
+from .domain.fundamentals.model.models import Fundamentals
+from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
+from .domain.ipo.model.models import IPO
+from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
 from django.http import JsonResponse
+from decouple import config
+from pymongo import MongoClient
+
+mongo_uri=config('MONGO_URI')
+client=MongoClient(mongo_uri)
+db=client[config('MONGODB_DB_NAME')]
+assets_collection=db['market_symbols']
 
 @shared_task
 def webhook_push(results,task_id):
@@ -15,11 +26,10 @@ def webhook_push(results,task_id):
         webhook.on_success({'message':message},task_id,[],{})
     else:
         webhook.on_failure(Exception(message),task_id,[],{},None)
-    print('time to send a message')
-    # return {
-    #     'success': success,
-    #     'message': message,
-    # }
+    return {
+        'success': success,
+        'message': message,
+    }
 
 @shared_task(bind=True,max_retries=3)
 def populate_market_stocks(self,market_ticker):
@@ -29,7 +39,6 @@ def populate_market_stocks(self,market_ticker):
         if symbols is None or not symbols:
             raise Exception(f'Data not found for asset with symbol {market_ticker}')
         for symbol in symbols[:5]:
-            print('populating stock',symbol)
             try:
                 save_asset_to_mongo(symbol,market_ticker)
             except Exception as e:
@@ -45,7 +54,9 @@ def populate_market_stocks(self,market_ticker):
 
 @shared_task(bind=True,base=WebhookTask)
 def async_market_population(self):
-    print('starting population task')
+    """
+
+    """
     try:
         code,markets=fetch_market_exchange_data()
         market_errors=[]
@@ -53,18 +64,46 @@ def async_market_population(self):
             try:
                 save_market_to_mongo(market)
             except Exception as e:
-                market_errors.append(f'Failed to save market {market}: {str(e)}')
+                market_errors.append(f'Failed to save market symbols for {market}: {str(e)}')
         if market_errors:
-            raise Exception(f'Error saving market data: {market_errors}')
+            raise Exception(f'Error saving market symbol data: {market_errors}')
         # market_population_tasks=group(populate_market_stocks.s(market['Code']) for market in markets[:5])
         # result=group(market_population_tasks).apply_async()
         # result.get()
-        market_population_tasks=[populate_market_stocks.s(market['Code']+'str') for market in markets[:5]]
-        callback=webhook_push.s(task_id=self.request.id)
-        chord(market_population_tasks)(callback)
+        market_population_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_symbols_callback=webhook_push.s(task_id=self.request.id)
+        data_filling=fill_all_data.s()
+        flow=(chord(market_population_tasks,market_symbols_callback)|data_filling)
+        flow.delay()
         return {
             'code': code,
-            'message': f'Database population started.',
+            'message': f'Database symbol updates started.',
         }
     except Exception as e:
-        raise Exception(f'Error populating database with market data: {str(e)}')
+        raise Exception(f'Error updating market symbols: {str(e)}')
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_all_data(self,previous_result=None):
+    try:
+        #Stock Fundamentals
+        cursor=assets_collection.find(batch_size=100)
+        msg='none'
+        fundamentals_response=0
+        for symb in cursor:
+            symbol=symb['Code']
+            fundamentals_response=fetch_fundamentals_data(symbol)
+            fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+            if fundamentals_response.status_code==200:
+                fundamentals.upsert_asset(symbol,fundamentals_response.data)
+        self.on_success({'message':'finished fundamentals'},self.request.id,[],{})
+
+        #IPO Calendar
+        ipo_response=fetch_ipo_calendar_data()
+        ipo=IPO(symbol='IPO Calendar',provider='FMP')
+        if ipo_response.status_code==200 or ipo_response.status_code==206:
+            ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
+        self.on_success({'message':'finished ipos'},self.request.id,[],{})
+
+        return {'message':'All data filled successfully'}
+    except Exception as e:
+        raise Exception(f'Error filling data: {str(e)}')

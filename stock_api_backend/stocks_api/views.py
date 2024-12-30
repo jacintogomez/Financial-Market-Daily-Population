@@ -55,7 +55,7 @@ def display_all_symbols(request):
 
 @api_view(['POST'])
 def update_all_collections(request):
-
+    return async_market_population.delay()
     msg='none'
     ipo_response=fetch_ipo_calendar_data()
     ipo=IPO(symbol='IPO Calendar',provider='FMP')
@@ -65,19 +65,19 @@ def update_all_collections(request):
         ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
     return JsonResponse(ipo_response.to_dict())
 
-    # cursor=assets_collection.find(batch_size=100)
-    # msg='none'
-    # fundamentals_response=0
-    # for symb in cursor:
-    #     symbol=symb['Code']
-    #     print(symbol)
-    #     fundamentals_response=fetch_fundamentals_data(symbol)
-    #     print('got obj')
-    #     fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-    #     if fundamentals_response.status_code==200:
-    #         fundamentals.upsert_asset(symbol,fundamentals_response.data)
-    # print('returning from ipo data collection')
-    # return JsonResponse(fundamentals_response.to_dict())
+    cursor=assets_collection.find(batch_size=100)
+    msg='none'
+    fundamentals_response=0
+    for symb in cursor:
+        symbol=symb['Code']
+        print(symbol)
+        fundamentals_response=fetch_fundamentals_data(symbol)
+        print('got obj')
+        fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+        if fundamentals_response.status_code==200:
+            fundamentals.upsert_asset(symbol,fundamentals_response.data)
+    print('returning from ipo data collection')
+    return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
