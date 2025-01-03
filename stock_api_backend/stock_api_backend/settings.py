@@ -58,21 +58,25 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Adding error logs to django_error.log
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'file': {
+        'error_file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'django_error.log',
         },
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'django_info.log',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
+            'handlers': ['error_file','info_file'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
