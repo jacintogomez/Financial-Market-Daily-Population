@@ -29,8 +29,7 @@ def webhook_push(results,task_id):
         status='success' if success else 'failure',
         task_id=task_id,
         message=message,
-        result={'success':success,'message':message} if success else None,
-        error=message if not success else None,
+        result='Results',
     )
     return {
         'success': success,
@@ -120,7 +119,7 @@ def fill_all_data(self,previous_result=None):
                     msg=f'Error processing fundamentals for {symbol}: {str(e)}'
                     logger.error(msg)
                     fundamentals_errors.append(msg)
-            return {'message':'finished updating fundamentals','errors':f"{'; '.join(fundamentals_errors)}"}
+            return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
         except Exception as e:
             msg=f'Could not process fundamentals updates: {str(e)}'
             logger.error(msg)

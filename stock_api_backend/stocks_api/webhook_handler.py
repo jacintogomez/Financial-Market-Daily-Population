@@ -24,7 +24,7 @@ class WebhookTask(Task):
         payload={
             'status':status,
             'task_id':task_id,
-            'message':message or {},
+            'message':message or (cls.success_msg if status=='success' else cls.failure_msg),
         }
         if result is not None:
             payload['result'] = result
@@ -39,14 +39,14 @@ class WebhookTask(Task):
         self.send_webhook(
             status='success',
             task_id=task_id,
-            message=self.success_msg,
-            result=retval,
+            message=retval.get('message') if isinstance(retval,dict) else None,
+            result={'partial-errors': retval.get('partial-errors') if isinstance(retval,dict) else None},
         )
 
     def on_failure(self,exc,task_id,args,kwargs,einfo):
         self.send_webhook(
             status='failure',
             task_id=task_id,
-            message=f'{self.failure_msg}: {str(exc)}',
+            message=self.failure_msg,
             result=exc,
         )

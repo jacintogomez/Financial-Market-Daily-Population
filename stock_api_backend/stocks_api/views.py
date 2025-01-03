@@ -90,11 +90,13 @@ def clear_test_collections(request):
     drop_collections_from_mongo()
     return Response('Deleted collections')
 
+#Standard webhook receiver template for testing Ngrok
 @csrf_exempt
 def webhook_receiver(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(data)
             # Handle the webhook data here
             print(f"Received webhook: {data}")
 
