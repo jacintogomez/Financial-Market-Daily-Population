@@ -99,50 +99,50 @@ def async_market_population(self):
 def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
-        # #Stock Fundamentals
-        # fundamentals_errors=[]
-        # try:
-        #     cursor=assets_collection.find(batch_size=100)
-        #     for symb in cursor:
-        #         symbol=symb['Code']
-        #         try:
-        #             fundamentals_response=fetch_fundamentals_data(symbol)
-        #             fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-        #             if fundamentals_response.status_code==200:
-        #                 fundamentals.upsert_asset(symbol,fundamentals_response.data)
-        #             else:
-        #                 msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
-        #                 logger.error(msg)
-        #                 fundamentals_errors.append(msg)
-        #         except Exception as e:
-        #             msg=f'Error processing fundamentals for {symbol}: {str(e)}'
-        #             logger.error(msg)
-        #             fundamentals_errors.append(msg)
-        #     self.on_success({'message':'finished updating fundamentals','errors':f"{'; '.join(fundamentals_errors)}"},self.request.id,[],{})
-        # except Exception as e:
-        #     msg=f'Could not process fundamentals updates: {str(e)}'
-        #     logger.error(msg)
-        #     raise Exception(msg)
-
-        #IPO Calendar
-        ipo_errors=[]
+        #Stock Fundamentals
+        fundamentals_errors=[]
         try:
-            ipo_response=fetch_ipo_calendar_data()
-            ipo=IPO(symbol='IPO Calendar',provider='FMP')
-            if ipo_response.status_code in [200,206]:
-                ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-                self.on_success({'message':'finished updating ipos'},self.request.id,[],{})
-            else:
-                msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
-                logger.error(msg)
-                ipo_errors.append(msg)
-
+            cursor=assets_collection.find(batch_size=100)
+            for symb in cursor:
+                symbol=symb['Code']
+                try:
+                    fundamentals_response=fetch_fundamentals_data(symbol)
+                    fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+                    if fundamentals_response.status_code==200:
+                        fundamentals.upsert_asset(symbol,fundamentals_response.data)
+                    else:
+                        msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
+                        logger.error(msg)
+                        fundamentals_errors.append(msg)
+                except Exception as e:
+                    msg=f'Error processing fundamentals for {symbol}: {str(e)}'
+                    logger.error(msg)
+                    fundamentals_errors.append(msg)
+            self.on_success({'message':'finished updating fundamentals','errors':f"{'; '.join(fundamentals_errors)}"},self.request.id,[],{})
         except Exception as e:
-            msg=f'Failed to process IPO calendar data: {str(e)}'
+            msg=f'Could not process fundamentals updates: {str(e)}'
             logger.error(msg)
             raise Exception(msg)
 
-        return {'message':'Daily data update completed successfully'}
+        #IPO Calendar
+        # ipo_errors=[]
+        # try:
+        #     ipo_response=fetch_ipo_calendar_data()
+        #     ipo=IPO(symbol='IPO Calendar',provider='FMP')
+        #     if ipo_response.status_code in [200,206]:
+        #         ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
+        #         self.on_success({'message':'finished updating ipos'},self.request.id,[],{})
+        #     else:
+        #         msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
+        #         logger.error(msg)
+        #         ipo_errors.append(msg)
+        #
+        # except Exception as e:
+        #     msg=f'Failed to process IPO calendar data: {str(e)}'
+        #     logger.error(msg)
+        #     raise Exception(msg)
+        #
+        # return {'message':'Daily data update completed successfully'}
 
     except Exception as e:
         msg=f'Error during daily data update: {str(e)}'
