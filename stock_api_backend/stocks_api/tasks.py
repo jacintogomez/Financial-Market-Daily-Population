@@ -25,11 +25,13 @@ logger=logging.getLogger('django')
 def webhook_push(results,task_id):
     success=all(result.get('code')==200 for result in results)
     message='Market symbols updated successfully' if success else 'Failure in updating market symbols'
-    webhook=WebhookTask()
-    if success:
-        webhook.on_success({'message':message},task_id,[],{})
-    else:
-        webhook.on_failure(Exception(message),task_id,[],{},None)
+    WebhookTask.send_webhook(
+        status='success' if success else 'failure',
+        task_id=task_id,
+        message=message,
+        result={'success':success,'message':message} if success else None,
+        error=message if not success else None,
+    )
     return {
         'success': success,
         'message': message,
@@ -118,7 +120,7 @@ def fill_all_data(self,previous_result=None):
                     msg=f'Error processing fundamentals for {symbol}: {str(e)}'
                     logger.error(msg)
                     fundamentals_errors.append(msg)
-            self.on_success({'message':'finished updating fundamentals','errors':f"{'; '.join(fundamentals_errors)}"},self.request.id,[],{})
+            return {'message':'finished updating fundamentals','errors':f"{'; '.join(fundamentals_errors)}"}
         except Exception as e:
             msg=f'Could not process fundamentals updates: {str(e)}'
             logger.error(msg)
@@ -131,7 +133,7 @@ def fill_all_data(self,previous_result=None):
         #     ipo=IPO(symbol='IPO Calendar',provider='FMP')
         #     if ipo_response.status_code in [200,206]:
         #         ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-        #         self.on_success({'message':'finished updating ipos'},self.request.id,[],{})
+        #         return {'message':'finished updating ipos'}
         #     else:
         #         msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
         #         logger.error(msg)
