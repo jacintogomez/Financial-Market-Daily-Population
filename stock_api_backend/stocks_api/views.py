@@ -1,6 +1,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+import json
 from .use_cases.get_stock_data import fetch_stock_data_from_api
 from .use_cases.post_stock_data import post_stock_data_to_collection
 from .interfaces.mongodb_handler import drop_collections_from_mongo,display_all_symbols_from_mongo
@@ -53,7 +55,6 @@ def display_all_symbols(request):
 
 @api_view(['POST'])
 def update_all_collections(request):
-
     msg='none'
     ipo_response=fetch_ipo_calendar_data()
     ipo=IPO(symbol='IPO Calendar',provider='FMP')
@@ -75,7 +76,7 @@ def update_all_collections(request):
     #     if fundamentals_response.status_code==200:
     #         fundamentals.upsert_asset(symbol,fundamentals_response.data)
     # print('returning from ipo data collection')
-    # return JsonResponse(fundamentals_response.to_dict())
+    return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
@@ -88,3 +89,29 @@ def clear_test_collections(request):
     # This is just for testing purposes, will not be in the real thing
     drop_collections_from_mongo()
     return Response('Deleted collections')
+
+#Standard webhook receiver template for testing Ngrok
+@csrf_exempt
+def webhook_receiver(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(data)
+            # Handle the webhook data here
+            print(f"Received webhook: {data}")
+
+            # You could store this in your database
+            if data['status'] == 'success':
+                # Handle successful task completion
+                task_id = data['task_id']
+                result = data['result']
+                # Do something with the result...
+            else:
+                # Handle task failure
+                error = data['error']
+                # Handle the error...
+
+            return HttpResponse(status=200)
+        except json.JSONDecodeError:
+            return HttpResponse(status=400)
+    return HttpResponse(status=405)

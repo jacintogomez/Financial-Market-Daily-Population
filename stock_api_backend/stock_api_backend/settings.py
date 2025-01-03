@@ -43,7 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'stocks_api',
+    'django_celery_beat',
 ]
+
+WEBHOOK_URL=config('WEBHOOK_URL')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -55,21 +58,25 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Adding error logs to django_error.log
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'file': {
+        'error_file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'django_error.log',
         },
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'django_info.log',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
+            'handlers': ['error_file','info_file'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
@@ -130,7 +137,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
