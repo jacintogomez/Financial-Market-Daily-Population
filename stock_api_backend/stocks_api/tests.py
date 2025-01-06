@@ -11,11 +11,12 @@ from .tasks import (
     fill_all_data
 )
 
+
 class WebhookTaskTests(TestCase):
     def setUp(self):
         self.task_id = "test-task-123"
 
-    @patch('tasks.WebhookTask.send_webhook')
+    @patch('stocks_api.tasks.WebhookTask.send_webhook')
     def test_webhook_push_success(self, mock_send_webhook):
         results = [{'code': 200}, {'code': 200}]
         result = webhook_push(results, self.task_id, category='test')
@@ -28,7 +29,7 @@ class WebhookTaskTests(TestCase):
         )
         self.assertTrue(result['success'])
 
-    @patch('tasks.WebhookTask.send_webhook')
+    @patch('stocks_api.tasks.WebhookTask.send_webhook')
     def test_webhook_push_failure(self, mock_send_webhook):
         results = [{'code': 200}, {'code': 400}]
         result = webhook_push(results, self.task_id, category='test')
@@ -41,9 +42,10 @@ class WebhookTaskTests(TestCase):
         )
         self.assertFalse(result['success'])
 
+
 class PopulateMarketStocksTests(TestCase):
-    @patch('tasks.fetch_all_symbols_from_market')
-    @patch('tasks.save_asset_to_mongo')
+    @patch('stocks_api.tasks.fetch_all_symbols_from_market')
+    @patch('stocks_api.tasks.save_asset_to_mongo')
     def test_populate_market_stocks_success(self, mock_save, mock_fetch):
         mock_fetch.return_value = (200, [{'symbol': 'AAPL'}, {'symbol': 'GOOGL'}])
 
@@ -56,8 +58,9 @@ class PopulateMarketStocksTests(TestCase):
             call({'symbol': 'GOOGL'}, 'NYSE')
         ])
 
+
 class IPODataTests(TestCase):
-    @patch('ipo_service.requests.get')
+    @patch('stocks_api.domain.ipo.service.requests.get')
     def test_fetch_ipo_calendar_data_success(self, mock_get):
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -68,7 +71,7 @@ class IPODataTests(TestCase):
         }
         mock_get.return_value = mock_response
 
-        with patch('tasks.IPO') as mock_ipo:
+        with patch('stocks_api.tasks.IPO') as mock_ipo:
             mock_instance = MagicMock()
             mock_ipo.return_value = mock_instance
 
@@ -91,10 +94,11 @@ class IPODataTests(TestCase):
         self.assertIn('ipo_confirmed', result)
         self.assertIn('ipo_prospectus', result)
 
+
 class AsyncMarketPopulationTests(TestCase):
-    @patch('tasks.fetch_market_exchange_data')
-    @patch('tasks.save_market_to_mongo')
-    @patch('tasks.chord')
+    @patch('stocks_api.tasks.fetch_market_exchange_data')
+    @patch('stocks_api.tasks.save_market_to_mongo')
+    @patch('stocks_api.tasks.chord')
     def test_async_market_population_success(self, mock_chord, mock_save, mock_fetch):
         mock_fetch.return_value = (200, [{'Code': 'NYSE'}, {'Code': 'NASDAQ'}])
         mock_chord.return_value.delay.return_value = AsyncResult('test-id')
