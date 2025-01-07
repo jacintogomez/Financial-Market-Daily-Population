@@ -37,7 +37,8 @@ class CeleryTaskTests(TestCase):
         self.assertEqual(result['message'],'Failed to update category')
 
     @patch('stocks_api.tasks.fetch_fundamentals_data')
-    def test_fill_fundamentals_data_success(self,mockfetch):
+    @patch('stocks_api.tasks.fill_fundamentals_data.apply_async',side_effect=lambda *args,**kwargs:None)
+    def test_fill_fundamentals_data_success(self,mockasync,mockfetch):
         mock=MagicMock()
         mock.status_code=200
         mock.data={
@@ -48,7 +49,8 @@ class CeleryTaskTests(TestCase):
         self.assertIn('finished updating fundamentals',results['message'])
 
     @patch('stocks_api.tasks.fetch_ipo_calendar_data')
-    def test_fill_ipo_data_success(self,mockfetch):
+    @patch('stocks_api.tasks.fill_ipo_data.apply_async',side_effect=lambda *args,**kwargs:None)
+    def test_fill_ipo_data_success(self,mockasync,mockfetch):
         mock=MagicMock()
         mock.status_code=200
         mock.data={
