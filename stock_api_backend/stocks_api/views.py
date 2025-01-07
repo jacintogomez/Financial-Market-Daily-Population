@@ -69,7 +69,6 @@ def update_ipo(request):
 @api_view(['POST'])
 def update_fundamentals(request):
     cursor=assets_collection.find(batch_size=100)
-    msg='none'
     fundamentals_response=0
     for symb in cursor:
         symbol=symb['Code']
@@ -79,7 +78,6 @@ def update_fundamentals(request):
         fundamentals=Fundamentals(symbol=symbol,provider='EOD')
         if fundamentals_response.status_code==200:
             fundamentals.upsert_asset(symbol,fundamentals_response.data)
-    print('returning from ipo data collection')
     return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['POST'])
@@ -87,9 +85,9 @@ def update_fundraising(request):
     fundraising_response=fetch_fundraising_data()
     fundraising=Fundraising(symbol='Fundraising',provider='FMP')
     if fundraising_response.status_code==200 or fundraising_response.status_code==206:
-        print('upserting ipos')
+        print('upserting fundraising')
         print(fundraising_response.to_dict())
-        fundraising.upsert_asset()
+        fundraising.upsert_asset('Fundraising',fundraising_response.data['crowdfunding-offerings-rss-feed'])
     return JsonResponse(fundraising_response.to_dict())
 
 @api_view(['GET'])

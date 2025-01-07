@@ -15,7 +15,7 @@ urlpatterns = [
     path('stocks/<str:symbol>',get_stock_data),
     path('pushtodb/<str:symbol>/<str:provider>/<str:collection>',push_to_db_test),
     path('market_exchange/',get_market_exchange_data),
-    path('update_fundamenatls/',update_fundamentals),
+    path('update_fundamentals/',update_fundamentals),
     path('update_ipo/',update_ipo),
     path('update_fundraising/',update_fundraising),
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
