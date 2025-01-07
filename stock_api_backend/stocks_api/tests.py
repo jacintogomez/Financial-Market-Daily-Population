@@ -25,3 +25,13 @@ class CeleryTaskTests(TestCase):
             mock.assert_called_once_with(status='success',task_id=id,message='Updated category successfully',result='Results')
         self.assertTrue(result['success'])
         self.assertEqual(result['message'],'Updated category successfully')
+
+    def test_webhook_push_failure(self):
+        results=[{'code':200},{'code':400}]
+        id='id'
+        category='category'
+        with patch('stocks_api.webhook_handler.WebhookTask.send_webhook') as mock:
+            result=webhook_push(results,id,category)
+            mock.assert_called_once_with(status='failure',task_id=id,message='Failed to update category',result='Results')
+        self.assertFalse(result['success'])
+        self.assertEqual(result['message'],'Failed to update category')
