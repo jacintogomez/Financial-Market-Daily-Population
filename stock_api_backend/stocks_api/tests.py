@@ -35,3 +35,16 @@ class CeleryTaskTests(TestCase):
             mock.assert_called_once_with(status='failure',task_id=id,message='Failed to update category',result='Results')
         self.assertFalse(result['success'])
         self.assertEqual(result['message'],'Failed to update category')
+
+    @patch('stocks_api.tasks.fetch_ipo_calendar_data')
+    def test_fill_ipo_data_success(self,mockfetch):
+        mock=MagicMock()
+        mock.status_code=200
+        mock.data={
+            'ipo-calendar-confirmed':[],
+            'ipo-calendar-prospectus':[],
+            'ipo-calendar':[],
+        }
+        mockfetch.return_value=mock
+        results=fill_ipo_data()
+        self.assertIn('finished updating ipos',results['message'])
