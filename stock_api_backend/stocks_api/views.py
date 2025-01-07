@@ -12,6 +12,8 @@ from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals
 from .domain.fundamentals.model.models import Fundamentals
 from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
 from .domain.ipo.model.models import IPO
+from .domain.fundraising.model.models import Fundraising
+from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -54,7 +56,7 @@ def display_all_symbols(request):
     return JsonResponse(display.to_dict())
 
 @api_view(['POST'])
-def update_all_collections(request):
+def update_ipo(request):
     msg='none'
     ipo_response=fetch_ipo_calendar_data()
     ipo=IPO(symbol='IPO Calendar',provider='FMP')
@@ -64,19 +66,31 @@ def update_all_collections(request):
         ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
     return JsonResponse(ipo_response.to_dict())
 
-    # cursor=assets_collection.find(batch_size=100)
-    # msg='none'
-    # fundamentals_response=0
-    # for symb in cursor:
-    #     symbol=symb['Code']
-    #     print(symbol)
-    #     fundamentals_response=fetch_fundamentals_data(symbol)
-    #     print('got obj')
-    #     fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-    #     if fundamentals_response.status_code==200:
-    #         fundamentals.upsert_asset(symbol,fundamentals_response.data)
-    # print('returning from ipo data collection')
+@api_view(['POST'])
+def update_fundamentals(request):
+    cursor=assets_collection.find(batch_size=100)
+    msg='none'
+    fundamentals_response=0
+    for symb in cursor:
+        symbol=symb['Code']
+        print(symbol)
+        fundamentals_response=fetch_fundamentals_data(symbol)
+        print('got obj')
+        fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+        if fundamentals_response.status_code==200:
+            fundamentals.upsert_asset(symbol,fundamentals_response.data)
+    print('returning from ipo data collection')
     return JsonResponse(fundamentals_response.to_dict())
+
+@api_view(['POST'])
+def update_fundraising(request):
+    fundraising_response=fetch_fundraising_data()
+    fundraising=Fundraising(symbol='Fundraising',provider='FMP')
+    if fundraising_response.status_code==200 or fundraising_response.status_code==206:
+        print('upserting ipos')
+        print(fundraising_response.to_dict())
+        fundraising.upsert_asset()
+    return JsonResponse(fundraising_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
