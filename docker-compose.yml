@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+    env_file:
+      - .env
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - celery_worker
+      - celery_beat
+
+  redis:
+    image: redis:5.2.1
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build:
+      context: .
+    command: celery -A stock_api_backend worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  celery_beat:
+    build:
+      context: .
+    command: celery -A stock_api_backend beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
