@@ -1,66 +1,69 @@
+from unittest import TestCase
+from unittest.mock import patch, MagicMock, call
 from django.test import TestCase
+from celery.result import AsyncResult
+from datetime import datetime, timezone
+from pymongo.collection import Collection
+from .webhook_handler import WebhookTask
+from .tasks import (
+    webhook_push,
+    populate_market_stocks,
+    async_market_population,
+    fill_fundamentals_data,
+    fill_ipo_data,
+    fill_all_data,
+)
 
-from .use_cases.get_stock_data import fetch_stock_data_fmp
-from .utils import StockData,APIResponse
-from unittest.mock import patch
+class CeleryTaskTests(TestCase):
 
-class Tests(TestCase):
-    def test_stock_data_initialization(self):
-        stock=StockData('AAPL')
-        assert stock.ticker=='AAPL'
-        assert stock.price==0
-        assert stock.convert_data_to_dict()==stock.__dict__
+    def test_webhook_push_success(self):
+        results=[{'code':200},{'code':200}]
+        id='id'
+        category='category'
+        with patch('stocks_api.webhook_handler.WebhookTask.send_webhook') as mock:
+            result=webhook_push(results,id,category)
+            mock.assert_called_once_with(status='success',task_id=id,message='Updated category successfully',result='Results')
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'],'Updated category successfully')
 
-    def test_api_response_creation(self):
-        stock_data=StockData('AAPL')
-        message='Retrieved data successfully'
-        response=APIResponse(200,message,stock_data)
-        response_dict=response.to_dict()
-        assert response_dict['status_code']==200
-        assert response_dict['message']==message
 
-    #TODO rewrite this test: doesnt work because fetch fundamentals data fmp has 2 get requests so the first is overridden
-    # def test_fetch_stock_data_fmp_success(self):
-    #     with patch('requests.get') as mock_get:
-    #         mock_response1=mock_get.return_value
-    #         mock_response1.status_code=200
-    #         mock_response1.json.return_value=[
-    #             {
-    #                 'price':150.00,
-    #                 'dayHigh':155.00,
-    #                 'dayLow':145.00,
-    #                 'open':148.00,
-    #                 'change':2.00,
-    #                 'changesPercentage':1.35,
-    #                 'volume':1000000,
-    #                 'pe':25.5,
-    #             }
-    #         ]
-    #
-    #         status_code,stock_data=fetch_stock_data_fmp('AAPL')
-    #         assert stock_data.price==150.00
-    #
-    #         mock_response2=mock_get.return_value
-    #         mock_response2.status_code=200
-    #         mock_response2.json.return_value=[
-    #             {
-    #                 'mktCap':2500000000,
-    #                 'lastDiv':0.5,
-    #             }
-    #         ]
-    #
-    #         status_code,stock_data=fetch_stock_data_fmp('AAPL')
-    #         assert status_code==200
-    #         assert stock_data.found==True
-    #         assert stock_data.provider=='FMP'
-    #         assert stock_data.market_cap==2500000000
+    def test_webhook_push_failure(self):
+        results=[{'code':200},{'code':400}]
+        id='id'
+        category='category'
+        with patch('stocks_api.webhook_handler.WebhookTask.send_webhook') as mock:
+            result=webhook_push(results,id,category)
+            mock.assert_called_once_with(status='failure',task_id=id,message='Failed to update category',result='Results')
+        self.assertFalse(result['success'])
+        self.assertEqual(result['message'],'Failed to update category')
 
-    def test_fetch_stock_data_fmp_fail(self):
-        with patch('requests.get') as mock_get:
-            mock_response1=mock_get.return_value
-            mock_response1.status_code=404
-            mock_response1.json.return_value=[]
 
-            status_code,stock_data=fetch_stock_data_fmp('AAPL')
-            assert status_code==404
-            assert stock_data.found==False
+    @patch('stocks_api.tasks.fetch_fundamentals_data')
+    @patch('stocks_api.tasks.fill_fundamentals_data.apply_async',side_effect=lambda *args,**kwargs:None)
+    @patch('stocks_api.domain.fundamentals.model.models.Fundamentals.upsert_asset')
+    def test_fill_fundamentals_data_success(self,mock_upsert,mock_async,mock_fetch):
+        mock=MagicMock()
+        mock.status_code=200
+        mock.data={
+            'symbol':'CECE',
+        }
+        mock_fetch.return_value=mock
+        results=fill_fundamentals_data()
+        self.assertIn('finished updating fundamentals',results['message'])
+
+
+    @patch('stocks_api.tasks.fetch_ipo_calendar_data')
+    @patch('stocks_api.tasks.fill_ipo_data.apply_async',side_effect=lambda *args,**kwargs:None)
+    @patch('stocks_api.domain.ipo.model.models.IPO.upsert_asset')
+    def test_fill_ipo_data_success(self,mock_upsert,mock_async,mock_fetch):
+        mock=MagicMock()
+        mock.status_code=200
+        mock.data={
+            'ipo-calendar-confirmed':[],
+            'ipo-calendar-prospectus':[],
+            'ipo-calendar':[],
+        }
+        mock_fetch.return_value=mock
+        results=fill_ipo_data()
+        self.assertIn('finished updating ipos',results['message'])
+

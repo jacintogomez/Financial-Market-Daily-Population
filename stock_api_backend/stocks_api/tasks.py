@@ -22,9 +22,12 @@ assets_collection=db['market_symbols']
 logger=logging.getLogger('django')
 
 @shared_task
-def webhook_push(results,task_id):
+def webhook_push(results,task_id,category=None,given_message=None):
     success=all(result.get('code')==200 for result in results)
-    message='Market symbols updated successfully' if success else 'Failure in updating market symbols'
+    if not given_message:
+        message=f'Updated {category} successfully' if success else f'Failed to update {category}'
+    else:
+        message=given_message
     WebhookTask.send_webhook(
         status='success' if success else 'failure',
         task_id=task_id,
@@ -82,10 +85,10 @@ def async_market_population(self):
             msg=f'Error saving market symbol data: {market_errors}'
             logger.error(msg)
             raise Exception(msg)
-        market_population_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
-        market_symbols_callback=webhook_push.s(task_id=self.request.id)
+        market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_symbols_callback=webhook_push.s(task_id=self.request.id,category='market symbols')
         data_filling=fill_all_data.s()
-        flow=(chord(market_population_tasks,market_symbols_callback)|data_filling)
+        flow=(chord(market_symbols_update_tasks,market_symbols_callback)|data_filling)
         flow.delay()
         return {
             'code': code,
@@ -97,53 +100,66 @@ def async_market_population(self):
         raise Exception(msg)
 
 @shared_task(bind=True,base=WebhookTask)
+def fill_fundamentals_data(self):
+    fundamentals_errors=[]
+    try:
+        cursor=assets_collection.find(batch_size=100)
+        for symb in cursor:
+            symbol=symb['Code']
+            try:
+                fundamentals_response=fetch_fundamentals_data(symbol)
+                fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+                if fundamentals_response.status_code==200:
+                    fundamentals.upsert_asset(symbol,fundamentals_response.data)
+                else:
+                    msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
+                    logger.error(msg)
+                    fundamentals_errors.append(msg)
+            except Exception as e:
+                msg=f'Error processing fundamentals for {symbol}: {str(e)}'
+                logger.error(msg)
+                fundamentals_errors.append(msg)
+
+        return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
+
+    except Exception as e:
+        msg=f'Could not process fundamentals updates: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_ipo_data(self):
+    ipo_errors=[]
+    try:
+        ipo_response=fetch_ipo_calendar_data()
+        ipo=IPO(symbol='IPO Calendar',provider='FMP')
+        if ipo_response.status_code in [200,206]:
+            ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
+            return {'message':'finished updating ipos'}
+        else:
+            msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
+            logger.error(msg)
+            ipo_errors.append(msg)
+
+        return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(ipo_errors)}"}
+
+    except Exception as e:
+        msg=f'Failed to process IPO calendar data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
 def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
-        #Stock Fundamentals
-        fundamentals_errors=[]
-        try:
-            cursor=assets_collection.find(batch_size=100)
-            for symb in cursor:
-                symbol=symb['Code']
-                try:
-                    fundamentals_response=fetch_fundamentals_data(symbol)
-                    fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-                    if fundamentals_response.status_code==200:
-                        fundamentals.upsert_asset(symbol,fundamentals_response.data)
-                    else:
-                        msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
-                        logger.error(msg)
-                        fundamentals_errors.append(msg)
-                except Exception as e:
-                    msg=f'Error processing fundamentals for {symbol}: {str(e)}'
-                    logger.error(msg)
-                    fundamentals_errors.append(msg)
-            return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
-        except Exception as e:
-            msg=f'Could not process fundamentals updates: {str(e)}'
-            logger.error(msg)
-            raise Exception(msg)
+        fill_all_data_tasks=[
+            fill_fundamentals_data.s(),
+            fill_ipo_data.s(),
+        ]
+        data_filled_callback=webhook_push.s(task_id=self.request.id,given_message='Finished daily re-run')
+        chord(fill_all_data_tasks,data_filled_callback).delay()
 
-        #IPO Calendar
-        # ipo_errors=[]
-        # try:
-        #     ipo_response=fetch_ipo_calendar_data()
-        #     ipo=IPO(symbol='IPO Calendar',provider='FMP')
-        #     if ipo_response.status_code in [200,206]:
-        #         ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-        #         return {'message':'finished updating ipos'}
-        #     else:
-        #         msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
-        #         logger.error(msg)
-        #         ipo_errors.append(msg)
-        #
-        # except Exception as e:
-        #     msg=f'Failed to process IPO calendar data: {str(e)}'
-        #     logger.error(msg)
-        #     raise Exception(msg)
-        #
-        # return {'message':'Daily data update completed successfully'}
+        return {'message':'Daily re-run started'}
 
     except Exception as e:
         msg=f'Error during daily data update: {str(e)}'
