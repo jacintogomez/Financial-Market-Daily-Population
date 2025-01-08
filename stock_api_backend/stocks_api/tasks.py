@@ -106,7 +106,9 @@ def fill_fundamentals_data(self):
         cursor=assets_collection.find(batch_size=100)
         for symb in cursor:
             symbol=symb['Code']
+            market=symb['Exchange']
             try:
+                symbol_market_code=f'{symbol}.{market}'
                 fundamentals_response=fetch_fundamentals_data(symbol)
                 fundamentals=Fundamentals(symbol=symbol,provider='EOD')
                 if fundamentals_response.status_code==200:
