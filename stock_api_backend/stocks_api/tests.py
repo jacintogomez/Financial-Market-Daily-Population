@@ -26,6 +26,7 @@ class CeleryTaskTests(TestCase):
         self.assertTrue(result['success'])
         self.assertEqual(result['message'],'Updated category successfully')
 
+
     def test_webhook_push_failure(self):
         results=[{'code':200},{'code':400}]
         id='id'
@@ -36,21 +37,25 @@ class CeleryTaskTests(TestCase):
         self.assertFalse(result['success'])
         self.assertEqual(result['message'],'Failed to update category')
 
+
     @patch('stocks_api.tasks.fetch_fundamentals_data')
     @patch('stocks_api.tasks.fill_fundamentals_data.apply_async',side_effect=lambda *args,**kwargs:None)
-    def test_fill_fundamentals_data_success(self,mockasync,mockfetch):
+    @patch('stocks_api.domain.fundamentals.model.models.Fundamentals.upsert_asset')
+    def test_fill_fundamentals_data_success(self,mock_upsert,mock_async,mock_fetch):
         mock=MagicMock()
         mock.status_code=200
         mock.data={
-            'symbol':'DUOL',
+            'symbol':'CECE',
         }
-        mockfetch.return_value=mock
+        mock_fetch.return_value=mock
         results=fill_fundamentals_data()
         self.assertIn('finished updating fundamentals',results['message'])
 
+
     @patch('stocks_api.tasks.fetch_ipo_calendar_data')
     @patch('stocks_api.tasks.fill_ipo_data.apply_async',side_effect=lambda *args,**kwargs:None)
-    def test_fill_ipo_data_success(self,mockasync,mockfetch):
+    @patch('stocks_api.domain.ipo.model.models.IPO.upsert_asset')
+    def test_fill_ipo_data_success(self,mock_upsert,mock_async,mock_fetch):
         mock=MagicMock()
         mock.status_code=200
         mock.data={
@@ -58,7 +63,7 @@ class CeleryTaskTests(TestCase):
             'ipo-calendar-prospectus':[],
             'ipo-calendar':[],
         }
-        mockfetch.return_value=mock
+        mock_fetch.return_value=mock
         results=fill_ipo_data()
         self.assertIn('finished updating ipos',results['message'])
 
