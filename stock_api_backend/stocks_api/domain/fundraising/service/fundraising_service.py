@@ -1,17 +1,15 @@
 from decouple import config
 import requests
 from http import HTTPStatus
-import re
 from requests import RequestException
+import re
 from ...apiresponse.model.models import APIResponse
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
 
 urls=[
-    'v4/ipo-calendar-confirmed',
-    'v4/ipo-calendar-prospectus',
-    'v3/ipo-calendar',
+    'v4/crowdfunding-offerings-rss-feed',
 ]
 
 def validate_api_response(data):
@@ -23,15 +21,13 @@ def validate_api_response(data):
         return data
     return None
 
-def fetch_ipo_calendar_data():
-    ipo_data={
-        'ipo-calendar-confirmed':{},
-        'ipo-calendar-prospectus':{},
-        'ipo-calendar':{},
+def fetch_fundraising_data():
+    fundraising_data={
+        'crowdfunding-offerings-rss-feed':{},
     }
     def make_request(url,endpoint):
         full_url=f'{fmp_api_prefix}{url}?{fmp_api_suffix}'
-        print('full_url=',full_url)
+        print('full url:', full_url)
         try:
             response=requests.get(full_url)
             if response.status_code==HTTPStatus.NOT_FOUND:
@@ -59,21 +55,21 @@ def fetch_ipo_calendar_data():
             status,error,data=make_request(url,endpoint_key)
             print('status is',status)
             if status:
-                ipo_data[endpoint_key]=data
+                fundraising_data[endpoint_key]=data
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        print('initial ipo data',ipo_data)
+        print('initial fundraising data',fundraising_data)
         if successes==0:
-            print('no ipo data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch IPO data',{})
-        if not ipo_data:
-            print('no valid ipo data')
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid IPO data received',{})
+            print('no fundraising data')
+            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch Fundraising data',{})
+        if not fundraising_data:
+            print('no valid fundraising data')
+            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid Fundraising data received',{})
         if successes<total_endpoints:
             print('partial data retrieved')
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all IPO endpoints: {errors}',ipo_data)
+            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all Fundraising endpoints: {errors}',fundraising_data)
         print('success data retrieved')
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved IPO data',ipo_data)
+        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved Fundraising data',fundraising_data)
     except Exception as e:
-        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch IPO data, Exception: {e}',{})
+        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch Fundraising data, Exception: {e}',{})
