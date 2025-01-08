@@ -25,7 +25,7 @@ GLOBAL_LOGS=os.path.join(BASE_DIR,'global_logs.log')
 SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG_MODE")==True
+DEBUG = config("DEBUG_MODE")=='True'
 
 ALLOWED_HOSTS = [
     'localhost',
