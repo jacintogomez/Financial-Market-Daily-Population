@@ -13,7 +13,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project
-COPY . /app/
+COPY stock_api_backend /app/
 
 # Expose the default Django port
 EXPOSE 8000
