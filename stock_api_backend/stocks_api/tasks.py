@@ -99,31 +99,35 @@ def async_market_population(self):
         logger.error(msg)
         raise Exception(msg)
 
+@shared_task
+def process_fundamentals(symbol):
+    fundamentals_response=fetch_fundamentals_data(symbol)
+    fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+    if fundamentals_response.status_code==200:
+        fundamentals.upsert_asset(symbol,fundamentals_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch fundamentals for {symbol}: Status code {fundamentals_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
     fundamentals_errors=[]
     try:
         cursor=assets_collection.find(batch_size=100)
-        for symb in cursor:
-            symbol=symb['Code']
-            try:
-                fundamentals_response=fetch_fundamentals_data(symbol)
-                fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-                if fundamentals_response.status_code==200:
-                    fundamentals.upsert_asset(symbol,fundamentals_response.data)
-                else:
-                    msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
-                    logger.error(msg)
-                    fundamentals_errors.append(msg)
-            except Exception as e:
-                msg=f'Error processing fundamentals for {symbol}: {str(e)}'
-                logger.error(msg)
-                fundamentals_errors.append(msg)
+        symbols=[symbol['Code'] for symbol in cursor]
+        fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
+        results=fund_task_group.apply_async()
+        failed_tasks=[result for result in results.get() if result['status']=='failed']
+        if failed_tasks:
+            errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
+            logger.error(errors)
 
         return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
 
     except Exception as e:
-        msg=f'Could not process fundamentals updates: {str(e)}'
+        msg=f'Error while filling fundamentals data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -144,7 +148,7 @@ def fill_ipo_data(self):
         return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(ipo_errors)}"}
 
     except Exception as e:
-        msg=f'Failed to process IPO calendar data: {str(e)}'
+        msg=f'Error while filling IPO data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
