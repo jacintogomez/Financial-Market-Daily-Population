@@ -14,7 +14,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.beat_schedule={
     'populate-market-data-daily':{
         'task':'stocks_api.tasks.async_market_population',
-        'schedule':crontab(hour=18,minute=6),
+        'schedule':crontab(hour=13,minute=41),
     },
 }
 
