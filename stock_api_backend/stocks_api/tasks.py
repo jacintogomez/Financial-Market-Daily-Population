@@ -117,10 +117,10 @@ def fill_fundamentals_data(self):
     try:
         cursor=assets_collection.find(batch_size=100)
         symbols=[symbol['Code'] for symbol in cursor]
-        fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
-        results=fund_task_group.apply_async()
         fundamentals_callback=webhook_push.s(task_id=self.request.id,category='fundamentals')
+        fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
         chord(fund_task_group)(fundamentals_callback)
+        results=fund_task_group.apply_async()
         failed_tasks=[result for result in results.get() if result['status']=='failed']
         if failed_tasks:
             errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
