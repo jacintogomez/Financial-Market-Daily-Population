@@ -18,7 +18,7 @@ Steps to run locally:
 
 Steps to set up async and webhook:
 1. Start Redis broker to accept async tasks `redis-server`
-2. Start Celery worker to handle async tasks `celery -A stock_api_backend worker --loglevel=info`
+2. Start Celery worker to handle async tasks `celery -A stock_api_backend worker --loglevel=info -P threads --concurrency=8`
 3. Start Celery beat for daily re-run tasks `celery -A stock_api_backend beat --loglevel=info`
 4. Start local ngrok server `ngrok http 8000`
 3. Start Zookeeper `bin/zookeeper-server-start.sh config/zookeeper.properties`
