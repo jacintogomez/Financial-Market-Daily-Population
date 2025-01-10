@@ -112,12 +112,13 @@ def process_fundamentals(symbol):
         return {'symbol':symbol,'status':'failure','error':msg}
 
 @shared_task(bind=True,base=WebhookTask)
-def generic_callback(self,results,alert,issues):
-    failed_tasks=[result for result in results if result.get('status')=='failed']
+def generic_callback(self,results,alert):
+    failed_tasks=[result for result in results if result.get('status')=='failure']
+    errors=[]
     if failed_tasks:
         errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
         logger.error(errors)
-    return {'message':alert,'partial-errors':f"{'; '.join(failed_tasks)}"}
+    return {'message':alert,'partial-errors':errors}
 
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
