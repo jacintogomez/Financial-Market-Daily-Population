@@ -112,21 +112,23 @@ def process_fundamentals(symbol):
         return {'symbol':symbol,'status':'failure','error':msg}
 
 @shared_task(bind=True,base=WebhookTask)
+def generic_callback(self,results,alert,issues):
+    failed_tasks=[result for result in results if result.get('status')=='failed']
+    if failed_tasks:
+        errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
+        logger.error(errors)
+    return {'message':alert,'partial-errors':f"{'; '.join(failed_tasks)}"}
+
+@shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
     fundamentals_errors=[]
     try:
         cursor=assets_collection.find(batch_size=100)
         symbols=[symbol['Code'] for symbol in cursor]
-        fundamentals_callback=webhook_push.s(task_id=self.request.id,category='fundamentals')
         fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
-        chord(fund_task_group)(fundamentals_callback)
-        results=fund_task_group.apply_async()
-        failed_tasks=[result for result in results.get() if result['status']=='failed']
-        if failed_tasks:
-            errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
-            logger.error(errors)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating fundamentals'))
 
-        return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
+        return {'message':'fundamentals update initiated','partial-errors':f"{'; '.join(fundamentals_errors)}"}
 
     except Exception as e:
         msg=f'Error while filling fundamentals data: {str(e)}'
@@ -158,12 +160,11 @@ def fill_ipo_data(self):
 def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
-        fill_all_data_tasks=[
+        fill_all_data_tasks=group([
             fill_fundamentals_data.s(),
             fill_ipo_data.s(),
-        ]
-        data_filled_callback=webhook_push.s(task_id=self.request.id,given_message='Finished daily re-run')
-        chord(fill_all_data_tasks,data_filled_callback).delay()
+        ])
+        chord(fill_all_data_tasks)(generic_callback.s(alert='Finished daily re-run'))
 
         return {'message':'Daily re-run started'}
 
