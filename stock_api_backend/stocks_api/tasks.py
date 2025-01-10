@@ -24,6 +24,8 @@ logger=logging.getLogger('django')
 @shared_task
 def webhook_push(results,task_id,category=None,given_message=None):
     success=all(result.get('code')==200 for result in results)
+    total_results=len(results)
+    num_suc=sum(1 for result in results if result.get('code')==200)
     if not given_message:
         message=f'Updated {category} successfully' if success else f'Failed to update {category}'
     else:
@@ -32,11 +34,36 @@ def webhook_push(results,task_id,category=None,given_message=None):
         status='success' if success else 'failure',
         task_id=task_id,
         message=message,
-        result='Results',
+        result=f'{num_suc} results succeeded out of {total_results}',
     )
     return {
         'success': success,
         'message': message,
+    }
+
+@shared_task(bind=True,base=WebhookTask)
+def generic_callback(self,results,category=None,alert=None):
+    success=all(result.get('code')==200 for result in results)
+    failed_tasks=[result for result in results if result.get('status')=='failure']
+    total_results=len(results)
+    num_suc=sum(1 for result in results if result.get('code')==200)
+    message=f'Updated {category} successfully' if success else (f'Failed to update {category}' if category else alert)
+    errors=[]
+    if failed_tasks:
+        errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
+        logger.error(errors)
+    WebhookTask.send_webhook(
+        status='success' if success else ('failure' if num_suc==0 else 'partial success'),
+        task_id=self.request.id,
+        message=message,
+        result={
+            'ratio':f'{num_suc} results succeeded out of {total_results}',
+            'partial-errors':errors,
+        }
+    )
+    return {
+        'success':success,
+        'message':alert,
     }
 
 @shared_task(bind=True,max_retries=3)
@@ -86,7 +113,7 @@ def async_market_population(self):
             logger.error(msg)
             raise Exception(msg)
         market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
-        market_symbols_callback=webhook_push.s(task_id=self.request.id,category='market symbols')
+        market_symbols_callback=generic_callback.s(task_id=self.request.id,category='market symbols')
         data_filling=fill_all_data.s()
         flow=(chord(market_symbols_update_tasks,market_symbols_callback)|data_filling)
         flow.delay()
@@ -110,15 +137,6 @@ def process_fundamentals(symbol):
         msg=f'Failed to fetch fundamentals for {symbol}: Status code {fundamentals_response.status_code}'
         logger.error(msg)
         return {'symbol':symbol,'status':'failure','error':msg}
-
-@shared_task(bind=True,base=WebhookTask)
-def generic_callback(self,results,alert):
-    failed_tasks=[result for result in results if result.get('status')=='failure']
-    errors=[]
-    if failed_tasks:
-        errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
-        logger.error(errors)
-    return {'message':alert,'partial-errors':errors}
 
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
