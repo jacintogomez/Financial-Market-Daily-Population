@@ -55,13 +55,11 @@ def generic_callback(self,results,category=None,alert=None):
     failed_tasks=[result for result in results if result.get('status')=='failure']
     total_results=len(results)
     num_suc=sum(1 for result in results if result.get('status')=='success')
-    message=f'Updated {category} successfully' if success else (f'Failed to update {category}' if category else alert)
+    message=alert if alert else (f'Updated {category} successfully' if success else f'Failed to update {category}')
     errors=''
     if failed_tasks:
         errors='; '.join([f"{task['symbol']}: {task.get('error')}" for task in failed_tasks])
         logger.error(errors)
-    logger.info(f'errors are {errors}')
-    logger.info(f'failed tasks are {failed_tasks}')
     return {
         'status':'success' if success else 'failure',
         'task_id':self.request.id,
@@ -150,7 +148,7 @@ def fill_fundamentals_data(self):
         fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
         chord(fund_task_group)(generic_callback.s(alert='Finished updating fundamentals'))
 
-        return {'message':'fundamentals update initiated'}
+        return {'message':'Fundamentals update started'}
 
     except Exception as e:
         msg=f'Error while filling fundamentals data: {str(e)}'
@@ -165,7 +163,7 @@ def fill_ipo_data(self):
         ipo=IPO(symbol='IPO Calendar',provider='FMP')
         if ipo_response.status_code in [200,206]:
             ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-            return {'message':'finished updating ipos'}
+            return {'message':'Finished updating IPOs'}
         else:
             msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
             logger.error(msg)
