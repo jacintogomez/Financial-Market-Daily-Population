@@ -50,7 +50,7 @@ def webhook_push(results,task_id,category=None,given_message=None):
     }
 
 @shared_task(bind=True,base=WebhookTask)
-def generic_callback(self,results,category=None,alert=None):
+def generic_callback(self,results,status=None,category=None,alert=None):
     success=any(result.get('status')=='success' for result in results)
     failed_tasks=[result for result in results if result.get('status')=='failure']
     total_results=len(results)
@@ -163,7 +163,7 @@ def fill_ipo_data(self):
         ipo=IPO(symbol='IPO Calendar',provider='FMP')
         if ipo_response.status_code in [200,206]:
             ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-            return {'message':'Finished updating IPOs'}
+            return {'message':'Finished updating IPOs','status':'success'}
         else:
             msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
             logger.error(msg)
@@ -184,9 +184,10 @@ def fill_all_data(self,previous_result=None):
             fill_fundamentals_data.s(),
             fill_ipo_data.s(),
         ])
-        chord(fill_all_data_tasks)(generic_callback.s(alert='Finished daily re-run'))
+        flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
+        flow.delay()
 
-        return {'message':'Daily re-run started'}
+        return {'message':'Daily re-run started','status':'pending'}
 
     except Exception as e:
         msg=f'Error during daily data update: {str(e)}'
