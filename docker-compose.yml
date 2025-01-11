@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./stock_api_backend:/app
+    env_file:
+      - ./stock_api_backend/.env
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - celery_worker
+      - celery_beat
+
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build:
+      context: .
+    command: celery -A stock_api_backend worker --loglevel=info
+    volumes:
+      - ./stock_api_backend:/app
+    env_file:
+      - ./stock_api_backend/.env
+    depends_on:
+      - redis
+
+  celery_beat:
+    build:
+      context: .
+    command: celery -A stock_api_backend beat --loglevel=info
+    volumes:
+      - ./stock_api_backend:/app
+    env_file:
+      - ./stock_api_backend/.env
+    depends_on:
+      - redis

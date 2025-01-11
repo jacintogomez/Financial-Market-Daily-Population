@@ -25,7 +25,7 @@ GLOBAL_LOGS=os.path.join(BASE_DIR,'global_logs.log')
 SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG_MODE")==True
+DEBUG = config("DEBUG_MODE")=="True"
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -155,8 +155,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # For local development
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # For local development
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 # Optional but recommended Celery settings
 CELERY_ACCEPT_CONTENT = ['application/json']
