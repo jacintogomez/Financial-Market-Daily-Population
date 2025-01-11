@@ -17,7 +17,7 @@ class WebhookTask(Task):
         return self
 
     @classmethod
-    def send_webhook(cls,status,task_id,message=None,result=None,error=None):
+    def send_webhook(cls,status,task_id,result=None,message=None,ratio=None,partial_errors=None):
         webhook_url=settings.WEBHOOK_URL
         if not webhook_url:
             return
@@ -27,9 +27,11 @@ class WebhookTask(Task):
             'message':message or (cls.success_msg if status=='success' else cls.failure_msg),
         }
         if result is not None:
-            payload['result'] = result
-        if error is not None:
-            payload['error'] = str(error)
+            payload['result']=result
+        if ratio is not None:
+            payload['ratio']=str(ratio)
+        if partial_errors is not None:
+            payload['partial_errors']=str(partial_errors)
         try:
             requests.post(webhook_url,json=payload)
         except Exception as e:
@@ -40,7 +42,10 @@ class WebhookTask(Task):
             status='success',
             task_id=task_id,
             message=retval.get('message') if isinstance(retval,dict) else None,
-            result={'partial-errors': retval.get('partial-errors') if isinstance(retval,dict) else None},
+            result={
+                'ratio':retval.get('ratio') if isinstance(retval,dict) else None,
+                'partial_errors': retval.get('partial_errors') if isinstance(retval,dict) else None
+            },
         )
 
     def on_failure(self,exc,task_id,args,kwargs,einfo):

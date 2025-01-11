@@ -24,19 +24,48 @@ logger=logging.getLogger('django')
 @shared_task
 def webhook_push(results,task_id,category=None,given_message=None):
     success=all(result.get('code')==200 for result in results)
+    total_results=len(results)
+    num_suc=sum(1 for result in results if result.get('code')==200)
     if not given_message:
         message=f'Updated {category} successfully' if success else f'Failed to update {category}'
     else:
         message=given_message
+    failed_tasks=[result for result in results if result.get('status')=='failure']
+    errors=[]
+    if failed_tasks:
+        errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
+        logger.error(errors)
     WebhookTask.send_webhook(
         status='success' if success else 'failure',
         task_id=task_id,
         message=message,
-        result='Results',
+        result={
+            'ratio':f'{num_suc} results succeeded out of {total_results}',
+            'partial_errors':errors,
+        }
     )
     return {
         'success': success,
         'message': message,
+    }
+
+@shared_task(bind=True,base=WebhookTask)
+def generic_callback(self,results,status=None,category=None,alert=None):
+    success=any(result.get('status')=='success' for result in results)
+    failed_tasks=[result for result in results if result.get('status')=='failure']
+    total_results=len(results)
+    num_suc=sum(1 for result in results if result.get('status')=='success')
+    message=alert if alert else (f'Updated {category} successfully' if success else f'Failed to update {category}')
+    errors=''
+    if failed_tasks:
+        errors='; '.join([f"{task['symbol']}: {task.get('error')}" for task in failed_tasks])
+        logger.error(errors)
+    return {
+        'status':'success' if success else 'failure',
+        'task_id':self.request.id,
+        'message':message,
+        'ratio':f'{num_suc} results succeeded out of {total_results}',
+        'partial_errors':errors,
     }
 
 @shared_task(bind=True,max_retries=3)
@@ -92,40 +121,37 @@ def async_market_population(self):
         flow.delay()
         return {
             'code': code,
-            'message': f'Database symbol update started.',
+            'message': f'Database symbol update started',
         }
     except Exception as e:
         msg=f'Error updating market symbols: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
+@shared_task
+def process_fundamentals(symbol):
+    fundamentals_response=fetch_fundamentals_data(symbol)
+    fundamentals=Fundamentals(symbol=symbol,provider='EOD')
+    if fundamentals_response.status_code==200:
+        fundamentals.upsert_asset(symbol,fundamentals_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch fundamentals for {symbol}: Status code {fundamentals_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
-    fundamentals_errors=[]
     try:
         cursor=assets_collection.find(batch_size=100)
-        for symb in cursor:
-            symbol=symb['Code']
-            market=symb['Exchange']
-            try:
-                symbol_market_code=f'{symbol}.{market}'
-                fundamentals_response=fetch_fundamentals_data(symbol)
-                fundamentals=Fundamentals(symbol=symbol,provider='EOD')
-                if fundamentals_response.status_code==200:
-                    fundamentals.upsert_asset(symbol,fundamentals_response.data)
-                else:
-                    msg=f'Failed to fetch fundamentals data for {symbol}: Status code {fundamentals_response.status_code}'
-                    logger.error(msg)
-                    fundamentals_errors.append(msg)
-            except Exception as e:
-                msg=f'Error processing fundamentals for {symbol}: {str(e)}'
-                logger.error(msg)
-                fundamentals_errors.append(msg)
+        symbols=[symbol['Code'] for symbol in cursor]
+        fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating fundamentals'))
 
-        return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(fundamentals_errors)}"}
+        return {'message':'Fundamentals update started'}
 
     except Exception as e:
-        msg=f'Could not process fundamentals updates: {str(e)}'
+        msg=f'Error while filling fundamentals data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -137,16 +163,16 @@ def fill_ipo_data(self):
         ipo=IPO(symbol='IPO Calendar',provider='FMP')
         if ipo_response.status_code in [200,206]:
             ipo.upsert_asset('IPO Calendar',ipo_response.data['ipo-calendar-confirmed'],ipo_response.data['ipo-calendar-prospectus'],ipo_response.data['ipo-calendar'])
-            return {'message':'finished updating ipos'}
+            return {'message':'Finished updating IPOs','status':'success'}
         else:
             msg=f'Failed to fetch IPO calendar data: Status code {ipo_response.status_code}'
             logger.error(msg)
             ipo_errors.append(msg)
 
-        return {'message':'finished updating fundamentals','partial-errors':f"{'; '.join(ipo_errors)}"}
+        return {'message':'finished updating ipos','partial-errors':f"{'; '.join(ipo_errors)}"}
 
     except Exception as e:
-        msg=f'Failed to process IPO calendar data: {str(e)}'
+        msg=f'Error while filling IPO data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -154,14 +180,14 @@ def fill_ipo_data(self):
 def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
-        fill_all_data_tasks=[
+        fill_all_data_tasks=group([
             fill_fundamentals_data.s(),
             fill_ipo_data.s(),
-        ]
-        data_filled_callback=webhook_push.s(task_id=self.request.id,given_message='Finished daily re-run')
-        chord(fill_all_data_tasks,data_filled_callback).delay()
+        ])
+        flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
+        flow.delay()
 
-        return {'message':'Daily re-run started'}
+        return {'message':'Daily re-run started','status':'pending'}
 
     except Exception as e:
         msg=f'Error during daily data update: {str(e)}'
