@@ -6,6 +6,7 @@ from .views import (
     push_to_db_test,
     update_fundamentals,
     update_ipo,
+    update_mergers_acquisitions,
     update_fundraising,
     display_all_symbols,
     webhook_receiver,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('update_fundamentals/',update_fundamentals),
     path('update_ipo/',update_ipo),
     path('update_fundraising/',update_fundraising),
+    path('update_mergers_acquisitions/',update_mergers_acquisitions),
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
     path('display/',display_all_symbols),
     path('webhook/',webhook_receiver,name='webhook_receiver'),

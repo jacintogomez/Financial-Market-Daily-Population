@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import json
+
+from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
 from .use_cases.get_stock_data import fetch_stock_data_from_api
 from .use_cases.post_stock_data import post_stock_data_to_collection
 from .interfaces.mongodb_handler import drop_collections_from_mongo,display_all_symbols_from_mongo
@@ -89,6 +91,16 @@ def update_fundraising(request):
         print(fundraising_response.to_dict())
         fundraising.upsert_asset('Fundraising',fundraising_response.data['crowdfunding-offerings-rss-feed'])
     return JsonResponse(fundraising_response.to_dict())
+
+@api_view(['POST'])
+def update_mergers_acquisitions(request):
+    mergers_acquisitions_response=fetch_mergers_acquisitions_data()
+    mergers_acquisitions=Fundraising(symbol='Mergers & Acquisitions',provider='FMP')
+    if mergers_acquisitions_response.status_code==200 or mergers_acquisitions_response.status_code==206:
+        print('upserting mergers & acquisitions')
+        print(mergers_acquisitions_response.to_dict())
+        mergers_acquisitions.upsert_asset('Mergers & Acquisitions',mergers_acquisitions_response.data['mergers-acquisitions-rss-feed'])
+    return JsonResponse(mergers_acquisitions_response.to_dict())
 
 @api_view(['GET'])
 def get_market_exchange_data(request):
