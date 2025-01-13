@@ -8,6 +8,10 @@ from .domain.fundamentals.model.models import Fundamentals
 from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
 from .domain.ipo.model.models import IPO
 from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
+from .domain.fundraising.model.models import Fundraising
+from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
+from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
+from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
 from django.http import JsonResponse
 from decouple import config
 from pymongo import MongoClient
@@ -146,7 +150,7 @@ def fill_fundamentals_data(self):
         cursor=assets_collection.find(batch_size=100)
         symbols=[symbol['Code'] for symbol in cursor]
         fund_task_group=group(process_fundamentals.s(symbol) for symbol in symbols)
-        chord(fund_task_group)(generic_callback.s(alert='Finished updating fundamentals'))
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating Fundamentals'))
 
         return {'message':'Fundamentals update started'}
 
@@ -169,10 +173,52 @@ def fill_ipo_data(self):
             logger.error(msg)
             ipo_errors.append(msg)
 
-        return {'message':'finished updating ipos','partial-errors':f"{'; '.join(ipo_errors)}"}
+        return {'message':'finished updating IPOs','partial-errors':f"{'; '.join(ipo_errors)}"}
 
     except Exception as e:
         msg=f'Error while filling IPO data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_fundraising_data(self):
+    fundraising_errors=[]
+    try:
+        fundraising_response=fetch_fundraising_data()
+        fundraising=Fundraising(symbol='Fundraising',provider='FMP')
+        if fundraising_response.status_code in [200,206]:
+            fundraising.upsert_asset('Fundraising',fundraising_response.data['crowdfunding-offerings-rss-feed'])
+            return {'message':'Finished updating Fundraising','status':'success'}
+        else:
+            msg=f'Failed to fetch Fundraising data: Status code {fundraising_response.status_code}'
+            logger.error(msg)
+            fundraising_errors.append(msg)
+
+        return {'message':'finished updating fundraising','partial-errors':f"{'; '.join(fundraising_errors)}"}
+
+    except Exception as e:
+        msg=f'Error while filling fundraising data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_mergers_acquisitions_data(self):
+    mergers_acquisitions_errors=[]
+    try:
+        mergers_acquisitions_response=fetch_mergers_acquisitions_data()
+        mergers_acquisitions=Mergers_Acquisitions(symbol='Mergers & Acquisitions',provider='FMP')
+        if mergers_acquisitions_response.status_code in [200,206]:
+            mergers_acquisitions.upsert_asset('Mergers & Acquisitions',mergers_acquisitions_response.data['mergers-acquisitions-rss-feed'])
+            return {'message':'Finished updating mergers & acquisitions','status':'success'}
+        else:
+            msg=f'Failed to fetch mergers & acquisitions data: Status code {mergers_acquisitions_response.status_code}'
+            logger.error(msg)
+            mergers_acquisitions_errors.append(msg)
+
+        return {'message':'finished updating Mergers & Acquisitions','partial-errors':f"{'; '.join(mergers_acquisitions_errors)}"}
+
+    except Exception as e:
+        msg=f'Error while filling mergers & acquisitions data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -183,6 +229,8 @@ def fill_all_data(self,previous_result=None):
         fill_all_data_tasks=group([
             fill_fundamentals_data.s(),
             fill_ipo_data.s(),
+            fill_fundraising_data.s(),
+            fill_mergers_acquisitions_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
