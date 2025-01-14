@@ -94,7 +94,7 @@ def update_esg(request):
         print(symbol)
         esg_response=fetch_esg_data(symbol)
         print('got obj')
-        esg=ESG(symbol=symbol,provider='EOD')
+        esg=ESG(symbol=symbol,provider='FMP')
         if esg_response.status_code==200:
             esg.upsert_asset(symbol,esg_response.data)
     return JsonResponse(esg_response.to_dict())

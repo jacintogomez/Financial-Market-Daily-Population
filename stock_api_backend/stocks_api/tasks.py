@@ -149,7 +149,7 @@ def process_fundamentals(symbol):
 @shared_task
 def process_esg(symbol):
     esg_response=fetch_esg_data(symbol)
-    esg=ESG(symbol=symbol,provider='EOD')
+    esg=ESG(symbol=symbol,provider='FMP')
     if esg_response.status_code==200:
         esg.upsert_asset(symbol,esg_response.data)
         return {'symbol':symbol,'status':'success'}
