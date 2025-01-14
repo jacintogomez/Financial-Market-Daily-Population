@@ -12,6 +12,8 @@ from .domain.fundraising.model.models import Fundraising
 from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
 from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
+from .domain.esg.model.models import ESG
+from .domain.esg.service.esg_service import fetch_esg_data
 from django.http import JsonResponse
 from decouple import config
 from pymongo import MongoClient
@@ -144,6 +146,18 @@ def process_fundamentals(symbol):
         logger.error(msg)
         return {'symbol':symbol,'status':'failure','error':msg}
 
+@shared_task
+def process_esg(symbol):
+    esg_response=fetch_esg_data(symbol)
+    esg=ESG(symbol=symbol,provider='EOD')
+    if esg_response.status_code==200:
+        esg.upsert_asset(symbol,esg_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch esg for {symbol}: Status code {esg_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
     try:
@@ -156,6 +170,21 @@ def fill_fundamentals_data(self):
 
     except Exception as e:
         msg=f'Error while filling fundamentals data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_esg_data(self):
+    try:
+        cursor=assets_collection.find(batch_size=100)
+        symbols=[symbol['Code'] for symbol in cursor]
+        fund_task_group=group(process_esg.s(symbol) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating ESG'))
+
+        return {'message':'ESG update started'}
+
+    except Exception as e:
+        msg=f'Error while filling esg data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -194,7 +223,7 @@ def fill_fundraising_data(self):
             logger.error(msg)
             fundraising_errors.append(msg)
 
-        return {'message':'finished updating fundraising','partial-errors':f"{'; '.join(fundraising_errors)}"}
+        return {'message':'finished updating Fundraising','partial-errors':f"{'; '.join(fundraising_errors)}"}
 
     except Exception as e:
         msg=f'Error while filling fundraising data: {str(e)}'
@@ -231,6 +260,7 @@ def fill_all_data(self,previous_result=None):
             fill_ipo_data.s(),
             fill_fundraising_data.s(),
             fill_mergers_acquisitions_data.s(),
+            fill_esg_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()

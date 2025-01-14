@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import json
 
+from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
 from .use_cases.get_stock_data import fetch_stock_data_from_api
 from .use_cases.post_stock_data import post_stock_data_to_collection
@@ -16,6 +17,8 @@ from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
 from .domain.ipo.model.models import IPO
 from .domain.fundraising.model.models import Fundraising
 from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
+from .domain.esg.model.models import ESG
+from .domain.esg.service.esg_service import fetch_esg_data
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -83,6 +86,20 @@ def update_fundamentals(request):
     return JsonResponse(fundamentals_response.to_dict())
 
 @api_view(['POST'])
+def update_esg(request):
+    cursor=assets_collection.find(batch_size=100)
+    esg_response=0
+    for symb in cursor:
+        symbol=symb['Code']
+        print(symbol)
+        esg_response=fetch_esg_data(symbol)
+        print('got obj')
+        esg=ESG(symbol=symbol,provider='EOD')
+        if esg_response.status_code==200:
+            esg.upsert_asset(symbol,esg_response.data)
+    return JsonResponse(esg_response.to_dict())
+
+@api_view(['POST'])
 def update_fundraising(request):
     fundraising_response=fetch_fundraising_data()
     fundraising=Fundraising(symbol='Fundraising',provider='FMP')
@@ -95,7 +112,7 @@ def update_fundraising(request):
 @api_view(['POST'])
 def update_mergers_acquisitions(request):
     mergers_acquisitions_response=fetch_mergers_acquisitions_data()
-    mergers_acquisitions=Fundraising(symbol='Mergers & Acquisitions',provider='FMP')
+    mergers_acquisitions=Mergers_Acquisitions(symbol='Mergers & Acquisitions',provider='FMP')
     if mergers_acquisitions_response.status_code==200 or mergers_acquisitions_response.status_code==206:
         print('upserting mergers & acquisitions')
         print(mergers_acquisitions_response.to_dict())
