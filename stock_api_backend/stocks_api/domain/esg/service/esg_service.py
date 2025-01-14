@@ -23,7 +23,7 @@ def validate_api_response(data):
 
 def fetch_esg_data(symbol):
     if not symbol:
-        APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
+        return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     esg_data={
         'esg-environmental-social-governance-data-ratings':{},
     }
