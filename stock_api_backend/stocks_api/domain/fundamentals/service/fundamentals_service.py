@@ -27,7 +27,7 @@ def validate_api_response(data):
 
 def fetch_fundamentals_data(symbol):
     if not symbol:
-        APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
+        return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     fundamentals_data={}
     def make_request(url,endpoint):
         full_url=f'{eod_api_prefix}{url}{symbol}?{eod_api_suffix}'

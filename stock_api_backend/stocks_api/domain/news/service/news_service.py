@@ -27,7 +27,7 @@ def validate_api_response(data):
 
 def fetch_news_data(symbol,market):
     if not symbol:
-        APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
+        return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     news_data={}
     def make_request(url,endpoint):
         full_url=f'{eod_api_prefix}{url}?s={symbol}.{market}&offset=0&limit=10&{eod_api_suffix}'
