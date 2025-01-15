@@ -63,7 +63,7 @@ def fetch_ipo_calendar_data():
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        print('initial ipo data',ipo_data)
+        #print('initial ipo data',ipo_data)
         if successes==0:
             print('no ipo data')
             return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch IPO data',{})

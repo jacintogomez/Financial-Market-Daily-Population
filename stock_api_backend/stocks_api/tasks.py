@@ -1,6 +1,6 @@
 from celery import shared_task,group,chord,chain
 from celery.result import GroupResult
-from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data
+from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data,fetch_fmp_symbols
 from .interfaces.mongodb_handler import save_asset_to_mongo,save_market_to_mongo
 from .webhook_handler import WebhookTask
 from .domain.apiresponse.model.models import APIResponse
@@ -30,6 +30,7 @@ logger=logging.getLogger('django')
 @shared_task
 def webhook_push(results,task_id,category=None,given_message=None):
     success=all(result.get('code')==200 for result in results)
+    partial=any(result.get('code')==200 for result in results)
     total_results=len(results)
     num_suc=sum(1 for result in results if result.get('code')==200)
     if not given_message:
@@ -42,7 +43,7 @@ def webhook_push(results,task_id,category=None,given_message=None):
         errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
         logger.error(errors)
     WebhookTask.send_webhook(
-        status='success' if success else 'failure',
+        status='success' if success else ('partial success' if partial else 'failure'),
         task_id=task_id,
         message=message,
         result={
@@ -85,7 +86,7 @@ def populate_market_stocks(self,market_ticker):
             raise Exception(msg)
         for symbol in symbols[:5]:
             try:
-                save_asset_to_mongo(symbol,market_ticker)
+                save_asset_to_mongo(symbol,market_ticker,'EOD')
             except Exception as e:
                 msg=f'Failed to save asset with symbol {symbol}: {e}'
                 logger.error(msg)
@@ -102,6 +103,41 @@ def populate_market_stocks(self,market_ticker):
         }
     except Exception as e:
         raise self.retry(exc=e,countdown=2**self.request.retries)
+
+@shared_task(bind=True)
+def populate_fmp_stocks(self):
+    try:
+        code,symbols=fetch_fmp_symbols()
+        logger.info(f'url is {code}')
+        symbol_errors=[]
+        if symbols is None or not symbols:
+            msg='FMP data not found'
+            logger.error(msg)
+            raise Exception(msg)
+        for company in symbols[:5]:
+            market_ticker = company['exchangeShortName']
+            thissymbol=company['symbol']
+            try:
+                save_asset_to_mongo(company,market_ticker,'FMP')
+            except Exception as e:
+                msg=f"Failed to save asset with symbol {thissymbol}: {e}"
+                logger.error(msg)
+                symbol_errors.append(msg)
+        if symbol_errors:
+            msg=f"Asset save errors for FMP data: {'; '.join(symbol_errors)}"
+            logger.error(msg)
+            raise Exception(msg)
+        msg=f'All FMP assets saved successfully'
+        logger.info(msg)
+        return {
+            'code': code,
+            'message': msg,
+        }
+
+    except Exception as e:
+        msg=f'Error while filling FMP symbols data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
 
 @shared_task(bind=True,base=WebhookTask)
 def async_market_population(self):
@@ -121,6 +157,7 @@ def async_market_population(self):
             logger.error(msg)
             raise Exception(msg)
         market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_symbols_update_tasks.append(populate_fmp_stocks.s())
         market_symbols_callback=webhook_push.s(task_id=self.request.id,category='market symbols')
         data_filling=fill_all_data.s()
         flow=(chord(market_symbols_update_tasks,market_symbols_callback)|data_filling)
