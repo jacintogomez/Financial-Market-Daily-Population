@@ -10,7 +10,7 @@ from .use_cases.get_stock_data import fetch_stock_data_from_api
 from .use_cases.post_stock_data import post_stock_data_to_collection
 from .interfaces.mongodb_handler import drop_collections_from_mongo,display_all_symbols_from_mongo
 from .utils import APIResponse
-from .tasks import async_market_population
+from .tasks import async_market_population,populate_fmp_stocks
 from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
 from .domain.fundamentals.model.models import Fundamentals
 from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
@@ -123,6 +123,12 @@ def update_mergers_acquisitions(request):
 def get_market_exchange_data(request):
     async_market_population.delay()
     market_exchange_data=APIResponse(200,'Begun populating database with market data..',None)
+    return JsonResponse(market_exchange_data.to_dict())
+
+@api_view(['GET'])
+def get_fmp_symbols_data(request):
+    populate_fmp_stocks.delay()
+    market_exchange_data=APIResponse(200,'Begun populating database with FMP market data..',None)
     return JsonResponse(market_exchange_data.to_dict())
 
 @api_view(['DELETE'])

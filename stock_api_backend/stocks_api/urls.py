@@ -9,6 +9,7 @@ from .views import (
     update_mergers_acquisitions,
     update_fundraising,
     update_esg,
+    get_fmp_symbols_data,
     display_all_symbols,
     webhook_receiver,
 )
@@ -22,6 +23,7 @@ urlpatterns = [
     path('update_esg/',update_esg),
     path('update_fundraising/',update_fundraising),
     path('update_mergers_acquisitions/',update_mergers_acquisitions),
+    path('get_fmp_symbols_data/',get_fmp_symbols_data),
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
     path('display/',display_all_symbols),
     path('webhook/',webhook_receiver,name='webhook_receiver'),
