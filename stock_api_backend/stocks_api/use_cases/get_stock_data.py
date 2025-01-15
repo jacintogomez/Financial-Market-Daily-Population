@@ -101,5 +101,5 @@ def fetch_fmp_symbols():
     url=f'{fmp_api_prefix}v3/stock/list?{fmp_api_suffix}'
     response=requests.get(url)
     if response.status_code==200:
-        return url,response.json()
-    return url,None
+        return response.status_code,response.json()
+    return response.status_code,None
