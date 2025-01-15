@@ -8,7 +8,7 @@ eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 
 urls=[
-    'news/',
+    'news',
 ]
 
 def validate_api_response(data):
@@ -30,7 +30,7 @@ def fetch_news_data(symbol,market):
         APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     news_data={}
     def make_request(url,endpoint):
-        full_url=f'{eod_api_prefix}{url}?{symbol}.{market}&offset=0&limit=10&{eod_api_suffix}'
+        full_url=f'{eod_api_prefix}{url}?s={symbol}.{market}&offset=0&limit=10&{eod_api_suffix}'
         print('full_url=',full_url)
         try:
             response=requests.get(full_url)
@@ -54,7 +54,8 @@ def fetch_news_data(symbol,market):
         total_endpoints=len(urls)
         errors=[]
         for url in urls:
-            endpoint_key=url.split('/')[-2]
+            print('url ishjh ',url)
+            endpoint_key=url
             print('name is ',endpoint_key)
             status,error,data=make_request(url,endpoint_key)
             print('status is ',status)
