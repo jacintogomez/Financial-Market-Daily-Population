@@ -10,15 +10,23 @@ client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 exchanges_collection=db['market_exchanges']
 assets_collection=db['market_symbols']
+fmp_assets_collection=db['market_fmp_symbols']
 
-def save_asset_to_mongo(asset,market):
-    query={'Code':asset['Code'],'Exchange':market}
-    print('updating asset')
-    # $set:data will
-    # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
-    assets_collection.update_one(query,{'$set':asset},upsert=True)
-    response=APIResponse(200,f'Saved asset with code {asset["Code"]} to assets collection',None)
-    return JsonResponse(response.to_dict())
+def save_asset_to_mongo(asset,market,provider):
+    if provider=='EOD':
+        query={'Code':asset['Code'],'Exchange':market}
+        print('updating asset')
+        # $set:data will
+        # upsert=True will update a record with matching ticker, and if there is no match it will create a new record
+        assets_collection.update_one(query,{'$set':asset},upsert=True)
+        response=APIResponse(200,f'Saved asset with code {asset["Code"]} to assets collection',None)
+        return JsonResponse(response.to_dict())
+    else:
+        query={'symbol':asset['symbol'],'exchangeShortName':market}
+        print('updating asset')
+        fmp_assets_collection.update_one(query,{'$set':asset},upsert=True)
+        response=APIResponse(200,f'Saved asset with code {asset["symbol"]} to assets collection',None)
+        return JsonResponse(response.to_dict())
 
 def save_market_to_mongo(market):
     print('updating market')
