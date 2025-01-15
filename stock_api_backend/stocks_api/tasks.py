@@ -24,6 +24,7 @@ mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
+us_exchanges={'NYSE MKT', 'AMEX', 'OTCGREY', 'NASDAQ', 'OTCCE', 'OTC', 'NYSE ARCA', 'BATS', 'OTCQX', 'OTCQB', 'OTCMTKS', 'NMFQS', 'US', 'OTCBB', 'OTCMKTS', 'PINK', 'NYSE'}
 
 logger=logging.getLogger('django')
 
@@ -85,7 +86,7 @@ def populate_market_stocks(self,market_ticker):
             raise Exception(msg)
         for symbol in symbols[:5]:
             try:
-                save_asset_to_mongo(symbol,market_ticker)
+                save_asset_to_mongo(symbol)
             except Exception as e:
                 msg=f'Failed to save asset with symbol {symbol}: {e}'
                 logger.error(msg)
@@ -256,11 +257,11 @@ def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
         fill_all_data_tasks=group([
-            fill_fundamentals_data.s(),
-            fill_ipo_data.s(),
-            fill_fundraising_data.s(),
-            fill_mergers_acquisitions_data.s(),
-            fill_news_data.s(),
+            # fill_fundamentals_data.s(),
+            # fill_ipo_data.s(),
+            # fill_fundraising_data.s(),
+            # fill_mergers_acquisitions_data.s(),
+            # fill_news_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
