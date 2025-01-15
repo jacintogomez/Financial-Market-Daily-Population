@@ -16,6 +16,7 @@ from .domain.ipo.service.ipo_service import fetch_ipo_calendar_data
 from .domain.ipo.model.models import IPO
 from .domain.fundraising.model.models import Fundraising
 from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
+from .domain.news.service.news_service import fetch_news_data
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -81,6 +82,21 @@ def update_fundamentals(request):
         if fundamentals_response.status_code==200:
             fundamentals.upsert_asset(symbol,fundamentals_response.data)
     return JsonResponse(fundamentals_response.to_dict())
+
+@api_view(['POST'])
+def update_news(request):
+    cursor=assets_collection.find(batch_size=100)
+    news_response=0
+    for symb in cursor:
+        symbol=symb['Code']
+        market=symb['Exchange']
+        print(symbol)
+        news_response=fetch_news_data(symbol,market)
+        print('got obj')
+        news=Fundamentals(symbol=symbol,provider='EOD')
+        if news_response.status_code==200:
+            news.upsert_asset(symbol,news_response.data)
+    return JsonResponse(news_response.to_dict())
 
 @api_view(['POST'])
 def update_fundraising(request):

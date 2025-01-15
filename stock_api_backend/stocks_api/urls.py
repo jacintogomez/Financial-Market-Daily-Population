@@ -8,6 +8,7 @@ from .views import (
     update_ipo,
     update_mergers_acquisitions,
     update_fundraising,
+    update_news,
     display_all_symbols,
     webhook_receiver,
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     path('market_exchange/',get_market_exchange_data),
     path('update_fundamentals/',update_fundamentals),
     path('update_ipo/',update_ipo),
+    path('update_news/',update_news),
     path('update_fundraising/',update_fundraising),
     path('update_mergers_acquisitions/',update_mergers_acquisitions),
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
