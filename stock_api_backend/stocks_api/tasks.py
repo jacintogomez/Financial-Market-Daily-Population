@@ -257,11 +257,11 @@ def fill_all_data(self,previous_result=None):
     logger.info(f'Started updating market data at {datetime.now(timezone.utc).isoformat()}')
     try:
         fill_all_data_tasks=group([
-            # fill_fundamentals_data.s(),
-            # fill_ipo_data.s(),
-            # fill_fundraising_data.s(),
-            # fill_mergers_acquisitions_data.s(),
-            # fill_news_data.s(),
+            fill_fundamentals_data.s(),
+            fill_ipo_data.s(),
+            fill_fundraising_data.s(),
+            fill_mergers_acquisitions_data.s(),
+            fill_news_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
