@@ -1,17 +1,15 @@
 from decouple import config
 import requests
 from http import HTTPStatus
-import re
 from requests import RequestException
+import re
 from ...apiresponse.model.models import APIResponse
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
 
 urls=[
-    'v4/ipo-calendar-confirmed',
-    'v4/ipo-calendar-prospectus',
-    'v3/ipo-calendar',
+    'v4/esg-environmental-social-governance-data-ratings',
 ]
 
 def validate_api_response(data):
@@ -23,15 +21,15 @@ def validate_api_response(data):
         return data
     return None
 
-def fetch_ipo_calendar_data():
-    ipo_data={
-        'ipo-calendar-confirmed':{},
-        'ipo-calendar-prospectus':{},
-        'ipo-calendar':{},
+def fetch_esg_data(symbol):
+    if not symbol:
+        return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
+    esg_data={
+        'esg-environmental-social-governance-data-ratings':{},
     }
     def make_request(url,endpoint):
-        full_url=f'{fmp_api_prefix}{url}?{fmp_api_suffix}'
-        print('full_url=',full_url)
+        full_url=f'{fmp_api_prefix}{url}?symbol={symbol}&{fmp_api_suffix}'
+        print('full url:', full_url)
         try:
             response=requests.get(full_url)
             if response.status_code==HTTPStatus.NOT_FOUND:
@@ -59,21 +57,21 @@ def fetch_ipo_calendar_data():
             status,error,data=make_request(url,endpoint_key)
             print('status is',status)
             if status:
-                ipo_data[endpoint_key]=data
+                esg_data[endpoint_key]=data
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        #print('initial ipo data',ipo_data)
+        print('initial esg data',esg_data)
         if successes==0:
-            print('no ipo data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch IPO data',{})
-        if not ipo_data:
-            print('no valid ipo data')
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid IPO data received',{})
+            print('no esg data')
+            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch ESG data',{})
+        if not esg_data:
+            print('no valid esg data')
+            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid ESG data received',{})
         if successes<total_endpoints:
             print('partial data retrieved')
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all IPO endpoints: {errors}',ipo_data)
+            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all ESG endpoints: {errors}',esg_data)
         print('success data retrieved')
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved IPO data',ipo_data)
+        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved ESG data',esg_data)
     except Exception as e:
-        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch IPO data, Exception: {e}',{})
+        return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch ESG data, Exception: {e}',{})

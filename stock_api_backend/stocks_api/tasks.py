@@ -1,6 +1,6 @@
 from celery import shared_task,group,chord,chain
 from celery.result import GroupResult
-from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data
+from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data,fetch_fmp_symbols
 from .interfaces.mongodb_handler import save_asset_to_mongo,save_market_to_mongo
 from .webhook_handler import WebhookTask
 from .domain.apiresponse.model.models import APIResponse
@@ -12,6 +12,8 @@ from .domain.fundraising.model.models import Fundraising
 from .domain.fundraising.service.fundraising_service import fetch_fundraising_data
 from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
+from .domain.esg.model.models import ESG
+from .domain.esg.service.esg_service import fetch_esg_data
 from .domain.news.model.models import News
 from .domain.news.service.news_service import fetch_news_data
 from django.http import JsonResponse
@@ -24,6 +26,7 @@ mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
+fmp_assets_collection=db['market_fmp_symbols']
 us_exchanges={'NYSE MKT', 'AMEX', 'OTCGREY', 'NASDAQ', 'OTCCE', 'OTC', 'NYSE ARCA', 'BATS', 'OTCQX', 'OTCQB', 'OTCMTKS', 'NMFQS', 'US', 'OTCBB', 'OTCMKTS', 'PINK', 'NYSE'}
 
 logger=logging.getLogger('django')
@@ -31,6 +34,7 @@ logger=logging.getLogger('django')
 @shared_task
 def webhook_push(results,task_id,category=None,given_message=None):
     success=all(result.get('code')==200 for result in results)
+    partial=any(result.get('code')==200 for result in results)
     total_results=len(results)
     num_suc=sum(1 for result in results if result.get('code')==200)
     if not given_message:
@@ -43,7 +47,7 @@ def webhook_push(results,task_id,category=None,given_message=None):
         errors='; '.join([f"{task['symbol']}: {task.get('error','Unknown error')}" for task in failed_tasks])
         logger.error(errors)
     WebhookTask.send_webhook(
-        status='success' if success else 'failure',
+        status='success' if success else ('partial success' if partial else 'failure'),
         task_id=task_id,
         message=message,
         result={
@@ -86,7 +90,7 @@ def populate_market_stocks(self,market_ticker):
             raise Exception(msg)
         for symbol in symbols[:5]:
             try:
-                save_asset_to_mongo(symbol)
+                save_asset_to_mongo(symbol,'EOD')
             except Exception as e:
                 msg=f'Failed to save asset with symbol {symbol}: {e}'
                 logger.error(msg)
@@ -103,6 +107,41 @@ def populate_market_stocks(self,market_ticker):
         }
     except Exception as e:
         raise self.retry(exc=e,countdown=2**self.request.retries)
+
+@shared_task(bind=True)
+def populate_fmp_stocks(self):
+    try:
+        code,symbols=fetch_fmp_symbols()
+        logger.info(f'url is {code}')
+        symbol_errors=[]
+        if symbols is None or not symbols:
+            msg='FMP data not found'
+            logger.error(msg)
+            raise Exception(msg)
+        for company in symbols[:5]:
+            market_ticker = company['exchangeShortName']
+            thissymbol=company['symbol']
+            try:
+                save_asset_to_mongo(company,'FMP')
+            except Exception as e:
+                msg=f"Failed to save asset with symbol {thissymbol}: {e}"
+                logger.error(msg)
+                symbol_errors.append(msg)
+        if symbol_errors:
+            msg=f"Asset save errors for FMP data: {'; '.join(symbol_errors)}"
+            logger.error(msg)
+            raise Exception(msg)
+        msg=f'All FMP assets saved successfully'
+        logger.info(msg)
+        return {
+            'code': code,
+            'message': msg,
+        }
+
+    except Exception as e:
+        msg=f'Error while filling FMP symbols data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
 
 @shared_task(bind=True,base=WebhookTask)
 def async_market_population(self):
@@ -122,6 +161,7 @@ def async_market_population(self):
             logger.error(msg)
             raise Exception(msg)
         market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_symbols_update_tasks.append(populate_fmp_stocks.s())
         market_symbols_callback=webhook_push.s(task_id=self.request.id,category='market symbols')
         data_filling=fill_all_data.s()
         flow=(chord(market_symbols_update_tasks,market_symbols_callback)|data_filling)
@@ -144,6 +184,18 @@ def process_fundamentals(symbol):
         return {'symbol':symbol,'status':'success'}
     else:
         msg=f'Failed to fetch fundamentals for {symbol}: Status code {fundamentals_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
+@shared_task
+def process_esg(symbol):
+    esg_response=fetch_esg_data(symbol)
+    esg=ESG(symbol=symbol,provider='FMP')
+    if esg_response.status_code==200:
+        esg.upsert_asset(symbol,esg_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch esg for {symbol}: Status code {esg_response.status_code}'
         logger.error(msg)
         return {'symbol':symbol,'status':'failure','error':msg}
 
@@ -190,6 +242,21 @@ def fill_news_data(self):
         raise Exception(msg)
 
 @shared_task(bind=True,base=WebhookTask)
+def fill_esg_data(self):
+    try:
+        cursor=fmp_assets_collection.find(batch_size=100)
+        symbols=[symbol['symbol'] for symbol in cursor]
+        fund_task_group=group(process_esg.s(symbol) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating ESG'))
+
+        return {'message':'ESG update started'}
+
+    except Exception as e:
+        msg=f'Error while filling esg data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
 def fill_ipo_data(self):
     ipo_errors=[]
     try:
@@ -224,7 +291,7 @@ def fill_fundraising_data(self):
             logger.error(msg)
             fundraising_errors.append(msg)
 
-        return {'message':'finished updating fundraising','partial-errors':f"{'; '.join(fundraising_errors)}"}
+        return {'message':'finished updating Fundraising','partial-errors':f"{'; '.join(fundraising_errors)}"}
 
     except Exception as e:
         msg=f'Error while filling fundraising data: {str(e)}'
@@ -261,7 +328,11 @@ def fill_all_data(self,previous_result=None):
             fill_ipo_data.s(),
             fill_fundraising_data.s(),
             fill_mergers_acquisitions_data.s(),
+<<<<<<< stock_api_backend/stocks_api/tasks.py
+            fill_esg_data.s(),
+=======
             fill_news_data.s(),
+>>>>>>> stock_api_backend/stocks_api/tasks.py
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
