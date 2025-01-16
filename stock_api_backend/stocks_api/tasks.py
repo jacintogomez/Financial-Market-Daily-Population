@@ -24,6 +24,7 @@ mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
+fmp_assets_collection=db['market_fmp_symbols']
 
 logger=logging.getLogger('django')
 
@@ -213,8 +214,8 @@ def fill_fundamentals_data(self):
 @shared_task(bind=True,base=WebhookTask)
 def fill_esg_data(self):
     try:
-        cursor=assets_collection.find(batch_size=100)
-        symbols=[symbol['Code'] for symbol in cursor]
+        cursor=fmp_assets_collection.find(batch_size=100)
+        symbols=[symbol['symbol'] for symbol in cursor]
         fund_task_group=group(process_esg.s(symbol) for symbol in symbols)
         chord(fund_task_group)(generic_callback.s(alert='Finished updating ESG'))
 
