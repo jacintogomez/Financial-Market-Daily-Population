@@ -10,6 +10,7 @@ from .views import (
     update_fundraising,
     update_esg,
     get_fmp_symbols_data,
+    update_news,
     display_all_symbols,
     webhook_receiver,
 )
@@ -21,6 +22,7 @@ urlpatterns = [
     path('update_fundamentals/',update_fundamentals),
     path('update_ipo/',update_ipo),
     path('update_esg/',update_esg),
+    path('update_news/',update_news),
     path('update_fundraising/',update_fundraising),
     path('update_mergers_acquisitions/',update_mergers_acquisitions),
     path('get_fmp_symbols_data/',get_fmp_symbols_data),

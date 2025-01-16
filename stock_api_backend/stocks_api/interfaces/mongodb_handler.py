@@ -12,8 +12,9 @@ exchanges_collection=db['market_exchanges']
 assets_collection=db['market_symbols']
 fmp_assets_collection=db['market_fmp_symbols']
 
-def save_asset_to_mongo(asset,market,provider):
+def save_asset_to_mongo(asset,provider):
     if provider=='EOD':
+        market=asset['Exchange']
         query={'Code':asset['Code'],'Exchange':market}
         print('updating asset')
         # $set:data will
@@ -22,6 +23,7 @@ def save_asset_to_mongo(asset,market,provider):
         response=APIResponse(200,f'Saved asset with code {asset["Code"]} to assets collection',None)
         return JsonResponse(response.to_dict())
     else:
+        market=asset['exchangeShortName']
         query={'symbol':asset['symbol'],'exchangeShortName':market}
         print('updating asset')
         fmp_assets_collection.update_one(query,{'$set':asset},upsert=True)

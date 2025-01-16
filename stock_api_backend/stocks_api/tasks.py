@@ -14,6 +14,8 @@ from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
 from .domain.esg.model.models import ESG
 from .domain.esg.service.esg_service import fetch_esg_data
+from .domain.news.model.models import News
+from .domain.news.service.news_service import fetch_news_data
 from django.http import JsonResponse
 from decouple import config
 from pymongo import MongoClient
@@ -25,6 +27,7 @@ client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
 fmp_assets_collection=db['market_fmp_symbols']
+us_exchanges={'NYSE MKT', 'AMEX', 'OTCGREY', 'NASDAQ', 'OTCCE', 'OTC', 'NYSE ARCA', 'BATS', 'OTCQX', 'OTCQB', 'OTCMTKS', 'NMFQS', 'US', 'OTCBB', 'OTCMKTS', 'PINK', 'NYSE'}
 
 logger=logging.getLogger('django')
 
@@ -87,7 +90,7 @@ def populate_market_stocks(self,market_ticker):
             raise Exception(msg)
         for symbol in symbols[:5]:
             try:
-                save_asset_to_mongo(symbol,market_ticker,'EOD')
+                save_asset_to_mongo(symbol,'EOD')
             except Exception as e:
                 msg=f'Failed to save asset with symbol {symbol}: {e}'
                 logger.error(msg)
@@ -119,7 +122,7 @@ def populate_fmp_stocks(self):
             market_ticker = company['exchangeShortName']
             thissymbol=company['symbol']
             try:
-                save_asset_to_mongo(company,market_ticker,'FMP')
+                save_asset_to_mongo(company,'FMP')
             except Exception as e:
                 msg=f"Failed to save asset with symbol {thissymbol}: {e}"
                 logger.error(msg)
@@ -211,6 +214,33 @@ def fill_fundamentals_data(self):
         logger.error(msg)
         raise Exception(msg)
 
+@shared_task
+def process_news(symbol,market):
+    news_response=fetch_news_data(symbol,market)
+    news=News(symbol=symbol,provider='EOD')
+    if news_response.status_code==200:
+        news.upsert_asset(symbol,news_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch news for {symbol}: Status code {news_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_news_data(self):
+    try:
+        cursor=assets_collection.find(batch_size=100)
+        symbols=[symbol for symbol in cursor]
+        fund_task_group=group(process_news.s(symbol['Code'],symbol['Exchange']) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating News'))
+
+        return {'message':'News update started'}
+
+    except Exception as e:
+        msg=f'Error while filling news data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
 @shared_task(bind=True,base=WebhookTask)
 def fill_esg_data(self):
     try:
@@ -298,7 +328,11 @@ def fill_all_data(self,previous_result=None):
             fill_ipo_data.s(),
             fill_fundraising_data.s(),
             fill_mergers_acquisitions_data.s(),
+<<<<<<< stock_api_backend/stocks_api/tasks.py
             fill_esg_data.s(),
+=======
+            fill_news_data.s(),
+>>>>>>> stock_api_backend/stocks_api/tasks.py
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
