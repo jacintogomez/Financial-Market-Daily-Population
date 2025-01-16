@@ -328,11 +328,8 @@ def fill_all_data(self,previous_result=None):
             fill_ipo_data.s(),
             fill_fundraising_data.s(),
             fill_mergers_acquisitions_data.s(),
-<<<<<<< stock_api_backend/stocks_api/tasks.py
             fill_esg_data.s(),
-=======
             fill_news_data.s(),
->>>>>>> stock_api_backend/stocks_api/tasks.py
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
