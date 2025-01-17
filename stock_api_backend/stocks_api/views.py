@@ -179,3 +179,27 @@ def webhook_receiver(request):
         except json.JSONDecodeError:
             return HttpResponse(status=400)
     return HttpResponse(status=405)
+
+@api_view(['GET'])
+def get_info(request,collection_name,field_path):
+    try:
+        collection=db[collection_name]
+        filters={}
+        for key,val in request.GET.items():
+            filters[key]=val
+        field_keys=field_path.split('-')
+        mongo_fields='.'.join(field_keys)
+        result=collection.find_one(filters,{mongo_fields:1,'_id':0})
+        if result:
+            value=result
+            for key in field_keys:
+                if value and isinstance(value,dict):
+                    value=value.get(key,None)
+                else:
+                    value=None
+                    break
+            return JsonResponse({'data':value})
+        else:
+            return JsonResponse({'error':'No matching record found'},status=404)
+    except Exception as e:
+        return JsonResponse({'error':str(e)},status=500)
