@@ -9,7 +9,12 @@ __pycache__/
 .env
 .idea
 .venv
-django_error.log
-global_logs.log
+
 pip_installs.txt
+django_error.log
+django_info.log
+global_logs.log
+
 dump.rdb
+celerybeat-schedule
+celerybeat-schedule.db
