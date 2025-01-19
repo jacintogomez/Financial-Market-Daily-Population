@@ -9,7 +9,7 @@ client=MongoClient(mongo_uri)
 
 db=client[config('MONGODB_DB_NAME')]
 exchanges_collection=db['market_exchanges']
-assets_collection=db['market_symbols']
+assets_collection=db['market_symbols'] #equivalent of market_eod_symbols
 fmp_assets_collection=db['market_fmp_symbols']
 
 def save_asset_to_mongo(asset,provider):
