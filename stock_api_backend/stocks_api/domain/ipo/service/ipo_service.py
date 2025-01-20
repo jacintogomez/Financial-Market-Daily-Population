@@ -4,7 +4,7 @@ from http import HTTPStatus
 import re
 from requests import RequestException
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_api_response
+from ...apiresponse.controller.fetch_data import validate_api_response,form_response
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
@@ -55,17 +55,7 @@ def fetch_ipo_calendar_data():
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        #print('initial ipo data',ipo_data)
-        if successes==0:
-            print('no ipo data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch IPO data',{})
-        if not ipo_data:
-            print('no valid ipo data')
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid IPO data received',{})
-        if successes<total_endpoints:
-            print('partial data retrieved')
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all IPO endpoints: {errors}',ipo_data)
-        print('success data retrieved')
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved IPO data',ipo_data)
+        apiresponse=form_response(successes,'IPO',ipo_data,total_endpoints,errors)
+        return apiresponse
     except Exception as e:
         return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch IPO data, Exception: {e}',{})

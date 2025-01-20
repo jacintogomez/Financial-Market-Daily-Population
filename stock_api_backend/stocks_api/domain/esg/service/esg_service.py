@@ -4,7 +4,7 @@ from http import HTTPStatus
 from requests import RequestException
 import re
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_api_response
+from ...apiresponse.controller.fetch_data import validate_api_response,form_response
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
@@ -53,17 +53,7 @@ def fetch_esg_data(symbol):
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        print('initial esg data',esg_data)
-        if successes==0:
-            print('no esg data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch ESG data',{})
-        if not esg_data:
-            print('no valid esg data')
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid ESG data received',{})
-        if successes<total_endpoints:
-            print('partial data retrieved')
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all ESG endpoints: {errors}',esg_data)
-        print('success data retrieved')
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved ESG data',esg_data)
+        apiresponse=form_response(successes,'ESG',esg_data,total_endpoints,errors)
+        return apiresponse
     except Exception as e:
         return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch ESG data, Exception: {e}',{})

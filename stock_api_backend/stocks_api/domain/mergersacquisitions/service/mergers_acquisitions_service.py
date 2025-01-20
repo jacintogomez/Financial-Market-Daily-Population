@@ -4,7 +4,7 @@ from http import HTTPStatus
 from requests import RequestException
 import re
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_api_response
+from ...apiresponse.controller.fetch_data import validate_api_response,form_response
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'

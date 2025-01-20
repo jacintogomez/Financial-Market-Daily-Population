@@ -3,7 +3,7 @@ from http import HTTPStatus
 import requests
 from requests import RequestException
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_singular_api_response
+from ...apiresponse.controller.fetch_data import validate_singular_api_response,form_response_symbol
 
 eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
@@ -51,13 +51,7 @@ def fetch_news_data(symbol,market):
                 successes+=1
             else:
                 errors.append(error)
-        if successes==0:
-            print('no news data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch data for symbol {symbol}',{})
-        if not news_data:
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid data received for symbol {symbol}',{})
-        if successes<total_endpoints:
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all {symbol} endpoints: {errors}',news_data)
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved data for {symbol}',news_data)
+        apiresponse=form_response_symbol(successes,symbol,'News',news_data,total_endpoints,errors)
+        return apiresponse
     except Exception as e:
         return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch data for symbol {symbol}, Exception: {e}',{})

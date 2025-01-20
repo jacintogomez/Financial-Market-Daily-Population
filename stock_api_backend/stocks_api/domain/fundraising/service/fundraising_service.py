@@ -4,7 +4,7 @@ from http import HTTPStatus
 from requests import RequestException
 import re
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_api_response
+from ...apiresponse.controller.fetch_data import validate_api_response,form_response
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
@@ -51,17 +51,7 @@ def fetch_fundraising_data():
                 successes+=1
             else:
                 errors.append(endpoint_key)
-        print('initial fundraising data',fundraising_data)
-        if successes==0:
-            print('no fundraising data')
-            return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch Fundraising data',{})
-        if not fundraising_data:
-            print('no valid fundraising data')
-            return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid Fundraising data received',{})
-        if successes<total_endpoints:
-            print('partial data retrieved')
-            return APIResponse(int(HTTPStatus.PARTIAL_CONTENT),f'Could not retrieve data for all Fundraising endpoints: {errors}',fundraising_data)
-        print('success data retrieved')
-        return APIResponse(int(HTTPStatus.OK),f'Successfully retrieved Fundraising data',fundraising_data)
+        apiresponse=form_response(successes,'Fundraising',fundraising_data,total_endpoints,errors)
+        return apiresponse
     except Exception as e:
         return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch Fundraising data, Exception: {e}',{})
