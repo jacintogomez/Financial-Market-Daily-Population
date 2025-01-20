@@ -4,6 +4,7 @@ from http import HTTPStatus
 from requests import RequestException
 import re
 from ...apiresponse.model.models import APIResponse
+from ...apiresponse.controller.fetch_data import validate_api_response
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
@@ -11,15 +12,6 @@ fmp_api_prefix='https://financialmodelingprep.com/api/'
 urls=[
     'v4/crowdfunding-offerings-rss-feed',
 ]
-
-def validate_api_response(data):
-    if data is None:
-        return None
-    if isinstance(data,list) or isinstance(data,dict):
-        if not data:
-            return None
-        return data
-    return None
 
 def fetch_fundraising_data():
     fundraising_data={

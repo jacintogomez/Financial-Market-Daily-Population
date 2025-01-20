@@ -3,6 +3,7 @@ from http import HTTPStatus
 import requests
 from requests import RequestException
 from ...apiresponse.model.models import APIResponse
+from ...apiresponse.controller.fetch_data import validate_singular_api_response
 
 eod_api_prefix='https://eodhd.com/api/'
 eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
@@ -10,20 +11,6 @@ eod_api_suffix='api_token='+config('EODHD_API_KEY')+'&fmt=json'
 urls=[
     'news',
 ]
-
-def validate_api_response(data):
-    print('validating news')
-    if data is None:
-        return None
-    if isinstance(data,list):
-        if not data:
-            return None
-        return data[0]
-    if isinstance(data,dict):
-        if not data:
-            return None
-        return data
-    return None
 
 def fetch_news_data(symbol,market):
     if not symbol:
@@ -41,7 +28,7 @@ def fetch_news_data(symbol,market):
                 data=response.json()
             except requests.exceptions.JSONDecodeError as e:
                 return False,f'Invalid JSON response {e} from {url}',None
-            validate_data=validate_api_response(data)
+            validate_data=validate_singular_api_response(data)
             if validate_data is not None:
                 return True,'',validate_data
             return False,f'No valid data returned from {url}',None
