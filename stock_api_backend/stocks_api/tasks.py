@@ -1,6 +1,6 @@
 from celery import shared_task,group,chord,chain
 from celery.result import GroupResult
-from .use_cases.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data,fetch_fmp_symbols
+from .api_access.get_stock_data import fetch_all_symbols_from_market,fetch_market_exchange_data,fetch_fmp_symbols
 from .db_access.mongodb_handler import save_asset_to_mongo,save_market_to_mongo
 from .webhook_handler import WebhookTask
 from .domain.apiresponse.model.models import APIResponse
