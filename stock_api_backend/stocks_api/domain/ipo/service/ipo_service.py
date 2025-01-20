@@ -4,7 +4,7 @@ from http import HTTPStatus
 import re
 from requests import RequestException
 from ...apiresponse.model.models import APIResponse
-from ...apiresponse.controller.fetch_data import validate_api_response,form_response
+from ...apiresponse.controller.fetch_data import form_response,check_for_problems
 
 fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
@@ -21,22 +21,11 @@ def fetch_ipo_calendar_data():
         'ipo-calendar-prospectus':{},
         'ipo-calendar':{},
     }
-    def make_request(url,endpoint):
+    def make_request(url):
         full_url=f'{fmp_api_prefix}{url}?{fmp_api_suffix}'
         print('full_url=',full_url)
         try:
-            response=requests.get(full_url)
-            if response.status_code==HTTPStatus.NOT_FOUND:
-                return False,f'Endpoint {url} not found',None
-            response.raise_for_status()
-            try:
-                data=response.json()
-            except requests.exceptions.JSONDecodeError as e:
-                return False,f'JSON decode error {e} from {url}',None
-            validated_data=validate_api_response(data)
-            if validated_data is not None:
-                return True,'',validated_data
-            return False,f'No valid data returned from {url}',None
+            return check_for_problems(full_url,url)
         except requests.exceptions.HTTPError as e:
             return False,f'HTTP error {e} occurred from {url}',None
         except RequestException as e:
@@ -48,7 +37,7 @@ def fetch_ipo_calendar_data():
         for url in urls:
             endpoint_key=re.split(r'[/?]',url)[-1]
             print('endpoint key is',endpoint_key)
-            status,error,data=make_request(url,endpoint_key)
+            status,error,data=make_request(url)
             print('status is',status)
             if status:
                 ipo_data[endpoint_key]=data
