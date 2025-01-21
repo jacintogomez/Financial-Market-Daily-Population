@@ -181,14 +181,16 @@ def webhook_receiver(request):
     return HttpResponse(status=405)
 
 @api_view(['GET'])
-def get_info(request,collection_name,field_path):
+def get_info(request,collection_name,field_path,query_value=None):
     try:
         collection=db[collection_name]
-        filters={}
+        filters={'symbol':query_value} if query_value else{}
         for key,val in request.GET.items():
             filters[key]=val
         field_keys=field_path.split('-')
+        print('field keys:',field_keys)
         mongo_fields='.'.join(field_keys)
+        print('mongo fields: ',mongo_fields)
         result=collection.find_one(filters,{mongo_fields:1,'_id':0})
         if result:
             value=result
@@ -198,8 +200,9 @@ def get_info(request,collection_name,field_path):
                 else:
                     value=None
                     break
-            return JsonResponse({'data':value})
+            return JsonResponse({'data':value},status=200)
         else:
             return JsonResponse({'error':'No matching record found'},status=404)
     except Exception as e:
+        print('an exception occurred:',e)
         return JsonResponse({'error':str(e)},status=500)
