@@ -13,6 +13,7 @@ from .views import (
     update_news,
     display_all_symbols,
     webhook_receiver,
+    get_info,
 )
 
 urlpatterns = [
@@ -29,4 +30,6 @@ urlpatterns = [
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
     path('display/',display_all_symbols),
     path('webhook/',webhook_receiver,name='webhook_receiver'),
+    path('get_info/<str:collection_name>/<path:field_path>/<str:query_value>/',get_info),
+    path('get_info/<str:collection_name>/<path:field_path>/',get_info),
 ]
