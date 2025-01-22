@@ -3,7 +3,7 @@ import requests
 from decouple import config
 from datetime import datetime,timezone
 from ..domain.models import Asset
-from ..interfaces.mongodb_handler import is_asset_in_mongo
+from ..db_access.mongodb_handler import is_asset_in_mongo
 
 # Environment variable setup
 

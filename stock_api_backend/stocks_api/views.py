@@ -7,9 +7,9 @@ from datetime import datetime
 
 from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
-from .use_cases.get_stock_data import fetch_stock_data_from_api
-from .use_cases.post_stock_data import post_stock_data_to_collection
-from .interfaces.mongodb_handler import drop_collections_from_mongo,display_all_symbols_from_mongo
+from .api_access.get_stock_data import fetch_stock_data_from_api
+from .api_access.post_stock_data import post_stock_data_to_collection
+from .db_access.mongodb_handler import drop_collections_from_mongo,display_all_symbols_from_mongo
 from .utils import APIResponse
 from .tasks import async_market_population,populate_fmp_stocks
 from .domain.fundamentals.service.fundamentals_service import fetch_fundamentals_data
