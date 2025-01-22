@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import json
+from datetime import datetime
 
 from .domain.mergersacquisitions.model.models import Mergers_Acquisitions
 from .domain.mergersacquisitions.service.mergers_acquisitions_service import fetch_mergers_acquisitions_data
@@ -185,21 +186,38 @@ def get_info(request,collection_name,field_path,query_value=None):
     try:
         collection=db[collection_name]
         filters={'symbol':query_value} if query_value else{}
-        for key,val in request.GET.items():
-            filters[key]=val
+        # for key,val in request.GET.items():
+        #     filters[key]=val
+        startdate=request.GET.get('start_date')
+        enddate=request.GET.get('end_date')
+        # if startdate and enddate:
+        #     filters[field_path+'.filingDate']={
+        #         '$gte':datetime.strptime(startdate,'%Y-%m-%d'),
+        #         '$lte':datetime.strptime(enddate,'%Y-%m-%d'),
+        #     }
         field_keys=field_path.split('-')
         print('field keys:',field_keys)
         mongo_fields='.'.join(field_keys)
         print('mongo fields: ',mongo_fields)
+        print('filters: ',filters)
         result=collection.find_one(filters,{mongo_fields:1,'_id':0})
         if result:
             value=result
             for key in field_keys:
+                print('key is',key)
                 if value and isinstance(value,dict):
+                    print('isdict')
                     value=value.get(key,None)
+                elif value and isinstance(value,list):
+                    print('islist')
+                    value=[item for item in value if startdate and enddate and datetime.strptime(item.get('filingDate'),'%Y-%m-%d')>=datetime.strptime(startdate,'%Y-%m-%d') and datetime.strptime(item.get('filingDate'),'%Y-%m-%d')<=datetime.strptime(enddate,'%Y-%m-%d')]
                 else:
+                    print('else')
                     value=None
                     break
+            if startdate and enddate and value and isinstance(value,list):
+                print('islist')
+                value=[item for item in value if startdate and enddate and datetime.strptime(item.get('filingDate'),'%Y-%m-%d')>=datetime.strptime(startdate,'%Y-%m-%d') and datetime.strptime(item.get('filingDate'),'%Y-%m-%d')<=datetime.strptime(enddate,'%Y-%m-%d')]
             return JsonResponse({'data':value},status=200)
         else:
             return JsonResponse({'error':'No matching record found'},status=404)
