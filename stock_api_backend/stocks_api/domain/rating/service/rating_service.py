@@ -17,7 +17,7 @@ def fetch_rating_data(symbol):
         return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     rating_data={}
     def make_request(url):
-        full_url=f'{fmp_api_prefix}/{url}?{fmp_api_suffix}'
+        full_url=f'{fmp_api_prefix}{url}/{symbol}?{fmp_api_suffix}'
         print('full_url=',full_url)
         try:
             return check_for_problems(full_url,url,symbol)

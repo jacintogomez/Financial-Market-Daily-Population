@@ -32,6 +32,7 @@ mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
+fmp_assets_collection=db['market_fmp_symbols']
 
 @api_view(['GET'])
 def get_stock_data(request,symbol):
@@ -92,10 +93,10 @@ def update_fundamentals(request):
 
 @api_view(['POST'])
 def update_esg(request):
-    cursor=assets_collection.find(batch_size=100)
+    cursor=fmp_assets_collection.find(batch_size=100)
     esg_response=0
-    for symb in cursor:
-        symbol=symb['Code']
+    for symb in cursor[:3]:
+        symbol=symb['symbol']
         print(symbol)
         esg_response=fetch_esg_data(symbol)
         print('got obj')
@@ -121,10 +122,10 @@ def update_news(request):
 
 @api_view(['POST'])
 def update_rating(request):
-    cursor=assets_collection.find(batch_size=100)
+    cursor=fmp_assets_collection.find(batch_size=100)
     rating_response=0
     for symb in cursor[:3]:
-        symbol=symb['Code']
+        symbol=symb['symbol']
         print(symbol)
         rating_response=fetch_rating_data(symbol)
         print('got obj')
