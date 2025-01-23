@@ -49,7 +49,7 @@ def form_response(successes,category,data,endpoints,errors):
 
 def form_response_symbol(successes,symbol,category,data,endpoints,errors):
     if successes==0:
-        print('no fundamentals data')
+        print('no data collected from api')
         return APIResponse(int(HTTPStatus.SERVICE_UNAVAILABLE),f'Failed to fetch {category} data for symbol {symbol}',{})
     if not data:
         return APIResponse(int(HTTPStatus.NO_CONTENT),f'No valid {category} data received for symbol {symbol}',{})
