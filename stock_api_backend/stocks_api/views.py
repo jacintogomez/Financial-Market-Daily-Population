@@ -22,6 +22,8 @@ from .domain.esg.model.models import ESG
 from .domain.esg.service.esg_service import fetch_esg_data
 from .domain.news.model.models import News
 from .domain.news.service.news_service import fetch_news_data
+from .domain.rating.model.models import Rating
+from .domain.rating.service.rating_service import fetch_rating_data
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -30,6 +32,7 @@ mongo_uri=config('MONGO_URI')
 client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
+fmp_assets_collection=db['market_fmp_symbols']
 
 @api_view(['GET'])
 def get_stock_data(request,symbol):
@@ -90,10 +93,10 @@ def update_fundamentals(request):
 
 @api_view(['POST'])
 def update_esg(request):
-    cursor=assets_collection.find(batch_size=100)
+    cursor=fmp_assets_collection.find(batch_size=100)
     esg_response=0
-    for symb in cursor:
-        symbol=symb['Code']
+    for symb in cursor[:3]:
+        symbol=symb['symbol']
         print(symbol)
         esg_response=fetch_esg_data(symbol)
         print('got obj')
@@ -116,6 +119,20 @@ def update_news(request):
         if news_response.status_code==200:
             news.upsert_asset(symbol,news_response.data)
     return JsonResponse(news_response.to_dict())
+
+@api_view(['POST'])
+def update_rating(request):
+    cursor=fmp_assets_collection.find(batch_size=100)
+    rating_response=0
+    for symb in cursor[:3]:
+        symbol=symb['symbol']
+        print(symbol)
+        rating_response=fetch_rating_data(symbol)
+        print('got obj')
+        rating=Rating(symbol=symbol,provider='FMP')
+        if rating_response.status_code==200:
+            rating.upsert_asset(symbol,rating_response.data)
+    return JsonResponse(rating_response.to_dict())
 
 @api_view(['POST'])
 def update_fundraising(request):

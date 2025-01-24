@@ -16,6 +16,8 @@ from .domain.esg.model.models import ESG
 from .domain.esg.service.esg_service import fetch_esg_data
 from .domain.news.model.models import News
 from .domain.news.service.news_service import fetch_news_data
+from .domain.rating.model.models import Rating
+from .domain.rating.service.rating_service import fetch_rating_data
 from django.http import JsonResponse
 from decouple import config
 from pymongo import MongoClient
@@ -199,6 +201,30 @@ def process_esg(symbol):
         logger.error(msg)
         return {'symbol':symbol,'status':'failure','error':msg}
 
+@shared_task
+def process_rating(symbol):
+    rating_response=fetch_rating_data(symbol)
+    rating=Rating(symbol=symbol,provider='FMP')
+    if rating_response.status_code==200:
+        rating.upsert_asset(symbol,rating_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch rating for {symbol}: Status code {rating_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
+@shared_task
+def process_news(symbol,market):
+    news_response=fetch_news_data(symbol,market)
+    news=News(symbol=symbol,provider='EOD')
+    if news_response.status_code==200:
+        news.upsert_asset(symbol,news_response.data)
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch news for {symbol}: Status code {news_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
 @shared_task(bind=True,base=WebhookTask)
 def fill_fundamentals_data(self):
     try:
@@ -213,18 +239,6 @@ def fill_fundamentals_data(self):
         msg=f'Error while filling fundamentals data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
-
-@shared_task
-def process_news(symbol,market):
-    news_response=fetch_news_data(symbol,market)
-    news=News(symbol=symbol,provider='EOD')
-    if news_response.status_code==200:
-        news.upsert_asset(symbol,news_response.data)
-        return {'symbol':symbol,'status':'success'}
-    else:
-        msg=f'Failed to fetch news for {symbol}: Status code {news_response.status_code}'
-        logger.error(msg)
-        return {'symbol':symbol,'status':'failure','error':msg}
 
 @shared_task(bind=True,base=WebhookTask)
 def fill_news_data(self):
@@ -253,6 +267,21 @@ def fill_esg_data(self):
 
     except Exception as e:
         msg=f'Error while filling esg data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_rating_data(self):
+    try:
+        cursor=fmp_assets_collection.find(batch_size=100)
+        symbols=[symbol['symbol'] for symbol in cursor]
+        fund_task_group=group(process_rating.s(symbol) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating Rating'))
+
+        return {'message':'Rating update started'}
+
+    except Exception as e:
+        msg=f'Error while filling rating data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -330,6 +359,7 @@ def fill_all_data(self,previous_result=None):
             fill_mergers_acquisitions_data.s(),
             fill_esg_data.s(),
             fill_news_data.s(),
+            fill_rating_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
