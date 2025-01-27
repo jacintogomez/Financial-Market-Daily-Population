@@ -10,20 +10,19 @@ fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
 
 symbol_specific_url_mapping={
-    'v3/earning_calendar':'earnings-calendar',
     'v3/historical/earning_calendar':'earnings-historical',
     'v3/earnings-surprises':'earnings-surprises',
 }
 
-single_urls=[
-    'v4/earning-calendar-confirmed',
-]
+single_urls={
+    'v3/earning_calendar':'earnings-calendar',
+    'v4/earning-calendar-confirmed':'earnings-calendar-confirmed',
+}
 
 def fetch_symbol_specific_earnings_data(symbol):
     if not symbol:
         return APIResponse(int(HTTPStatus.BAD_REQUEST),{},'No symbol provided')
     earnings_data={
-        'earnings-calendar':{},
         'earnings-historical':{},
         'earnings-surprises':{},
     }
@@ -45,7 +44,7 @@ def fetch_symbol_specific_earnings_data(symbol):
             print('name is ',endpoint_key)
             status,error,data=make_request(url)
             print('status is ',status)
-            print('data is ',data)
+            #print('data is ',data)
             if status:
                 earnings_data[endpoint_key]=data
                 successes+=1
@@ -57,7 +56,10 @@ def fetch_symbol_specific_earnings_data(symbol):
         return APIResponse(int(HTTPStatus.INTERNAL_SERVER_ERROR),f'Failed to fetch data for symbol {symbol}, Exception: {e}',{})
 
 def fetch_singular_earnings_data():
-    earnings_data={}
+    earnings_data={
+        'earnings-calendar':{},
+        'earnings-calendar-confirmed':{},
+    }
     def make_request(url):
         full_url=f'{fmp_api_prefix}{url}?{fmp_api_suffix}'
         print('full_url=',full_url)

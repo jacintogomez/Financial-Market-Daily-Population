@@ -27,20 +27,20 @@ class Earnings(Document):
             'provider': self.provider or None,
         }
     @classmethod
-    def upsert_asset(cls,symbol,new_calendar,new_historical,new_surprises):
+    def upsert_asset(cls,symbol,new_historical,new_surprises):
         return cls.objects(symbol=symbol).modify(
             upsert=True,
             new=True,
-            set__earnings_calendar=new_calendar,
             set__earnings_historical=new_historical,
             set__earnings_surprises=new_surprises,
             set__timestamp=datetime.now(timezone.utc).isoformat(),
         )
     @classmethod
-    def upsert_single_asset(cls,symbol,new_confirmed):
+    def upsert_single_asset(cls,symbol,new_calendar,new_confirmed):
         return cls.objects(symbol=symbol).modify(
             upsert=True,
             new=True,
+            set__earnings_calendar=new_calendar,
             set__earnings_confirmed=new_confirmed,
             set__timestamp=datetime.now(timezone.utc).isoformat(),
         )
