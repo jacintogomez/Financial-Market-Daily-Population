@@ -24,6 +24,8 @@ from .domain.news.model.models import News
 from .domain.news.service.news_service import fetch_news_data
 from .domain.rating.model.models import Rating
 from .domain.rating.service.rating_service import fetch_rating_data
+from .domain.earnings.model.models import Earnings
+from .domain.earnings.service.earnings_service import fetch_symbol_specific_earnings_data,fetch_singular_earnings_data
 from django.http import JsonResponse
 from pymongo import MongoClient
 from decouple import config
@@ -133,6 +135,26 @@ def update_rating(request):
         if rating_response.status_code==200:
             rating.upsert_asset(symbol,rating_response.data)
     return JsonResponse(rating_response.to_dict())
+
+@api_view(['POST'])
+def update_earnings(request):
+    earnings_cc=Earnings(symbol='Earnings',provider='FMP')
+    earnings_cc_response=fetch_singular_earnings_data()
+    if earnings_cc_response.status_code in [200,206]:
+        earnings_cc.upsert_single_asset('Earnings Calendar Confirmed',earnings_cc_response.data['earnings-calendar'],earnings_cc_response.data['earnings-calendar-confirmed'])
+    cursor=fmp_assets_collection.find(batch_size=100)
+    earnings_response=0
+    for symb in cursor:
+        symbol=symb['symbol']
+        print(symbol)
+        earnings_response=fetch_symbol_specific_earnings_data(symbol)
+        print('got obj')
+        earnings=Earnings(symbol=symbol,provider='FMP')
+        if earnings_response.status_code in [200,206]:
+            earnings.upsert_asset(symbol,earnings_response.data['earnings-historical'],earnings_response.data['earnings-surprises'])
+        else:
+            print('invalid response',earnings_response.status_code)
+    return JsonResponse(earnings_response.to_dict())
 
 @api_view(['POST'])
 def update_fundraising(request):
