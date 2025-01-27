@@ -140,7 +140,7 @@ def update_rating(request):
 def update_earnings(request):
     earnings_cc=Earnings(symbol='Earnings',provider='FMP')
     earnings_cc_response=fetch_singular_earnings_data()
-    if earnings_cc_response.status_code==200:
+    if earnings_cc_response.status_code in [200,206]:
         earnings_cc.upsert_single_asset('Earnings Calendar Confirmed',earnings_cc_response.data)
     cursor=fmp_assets_collection.find(batch_size=100)
     earnings_response=0
@@ -150,8 +150,10 @@ def update_earnings(request):
         earnings_response=fetch_symbol_specific_earnings_data(symbol)
         print('got obj')
         earnings=Earnings(symbol=symbol,provider='FMP')
-        if earnings_response.status_code==200:
+        if earnings_response.status_code in [200,206]:
             earnings.upsert_asset(symbol,earnings_response.data['earnings-calendar'],earnings_response.data['earnings-historical'],earnings_response.data['earnings-surprises'])
+        else:
+            print('invalid response',earnings_response.status_code)
     return JsonResponse(earnings_response.to_dict())
 
 @api_view(['POST'])

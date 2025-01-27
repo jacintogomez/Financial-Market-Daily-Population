@@ -10,7 +10,7 @@ fmp_api_suffix='apikey='+config('FMP_API_KEY')
 fmp_api_prefix='https://financialmodelingprep.com/api/'
 
 symbol_specific_url_mapping={
-    'v3/earnings_calendar':'earnings-calendar',
+    'v3/earning_calendar':'earnings-calendar',
     'v3/historical/earning_calendar':'earnings-historical',
     'v3/earnings-surprises':'earnings-surprises',
 }
@@ -31,7 +31,7 @@ def fetch_symbol_specific_earnings_data(symbol):
         full_url=f'{fmp_api_prefix}{url}/{symbol}?{fmp_api_suffix}'
         print('full_url=',full_url)
         try:
-            return check_for_problems(full_url,url,symbol)
+            return check_for_problems(full_url,url)
         except requests.exceptions.HTTPError as e:
             return False,f'HTTP error {e} occurred from {url}',None
         except RequestException as e:
@@ -45,6 +45,7 @@ def fetch_symbol_specific_earnings_data(symbol):
             print('name is ',endpoint_key)
             status,error,data=make_request(url)
             print('status is ',status)
+            print('data is ',data)
             if status:
                 earnings_data[endpoint_key]=data
                 successes+=1
