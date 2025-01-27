@@ -18,6 +18,8 @@ from .domain.news.model.models import News
 from .domain.news.service.news_service import fetch_news_data
 from .domain.rating.model.models import Rating
 from .domain.rating.service.rating_service import fetch_rating_data
+from .domain.earnings.model.models import Earnings
+from .domain.earnings.service.earnings_service import fetch_singular_earnings_data,fetch_symbol_specific_earnings_data
 from django.http import JsonResponse
 from decouple import config
 from pymongo import MongoClient
@@ -214,6 +216,18 @@ def process_rating(symbol):
         return {'symbol':symbol,'status':'failure','error':msg}
 
 @shared_task
+def process_earning(symbol):
+    earning_response=fetch_symbol_specific_earnings_data(symbol)
+    earning=Earnings(symbol=symbol,provider='FMP')
+    if earning_response.status_code in [200,206]:
+        earning.upsert_asset(symbol,earning_response.data['earnings-historical'],earning_response.data['earnings-surprises'])
+        return {'symbol':symbol,'status':'success'}
+    else:
+        msg=f'Failed to fetch earning for {symbol}: Status code {earning_response.status_code}'
+        logger.error(msg)
+        return {'symbol':symbol,'status':'failure','error':msg}
+
+@shared_task
 def process_news(symbol,market):
     news_response=fetch_news_data(symbol,market)
     news=News(symbol=symbol,provider='EOD')
@@ -282,6 +296,31 @@ def fill_rating_data(self):
 
     except Exception as e:
         msg=f'Error while filling rating data: {str(e)}'
+        logger.error(msg)
+        raise Exception(msg)
+
+@shared_task(bind=True,base=WebhookTask)
+def fill_earning_data(self):
+    try:
+        earnings_errors=[]
+        earnings_response=fetch_singular_earnings_data()
+        earnings=Earnings(symbol='Earnings',provider='FMP')
+        if earnings_response.status_code in [200,206]:
+            earnings.upsert_single_asset('Earnings',earnings_response.data['earnings-calendar'],earnings_response.data['earnings-calendar-confirmed'])
+        else:
+            msg=f'Failed to fetch Earnings data: Status code {earnings_response.status_code}'
+            logger.error(msg)
+            earnings_errors.append(msg)
+
+        cursor=fmp_assets_collection.find(batch_size=100)
+        symbols=[symbol['symbol'] for symbol in cursor]
+        fund_task_group=group(process_earning.s(symbol) for symbol in symbols)
+        chord(fund_task_group)(generic_callback.s(alert='Finished updating Earnings'))
+
+        return {'message':'Earnings update started'}
+
+    except Exception as e:
+        msg=f'Error while filling Earnings data: {str(e)}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -360,6 +399,7 @@ def fill_all_data(self,previous_result=None):
             fill_esg_data.s(),
             fill_news_data.s(),
             fill_rating_data.s(),
+            fill_earning_data.s(),
         ])
         flow=(fill_all_data_tasks|generic_callback.s(alert='Finished daily re-run'))
         flow.delay()
