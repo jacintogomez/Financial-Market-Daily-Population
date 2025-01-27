@@ -10,6 +10,7 @@ from .views import (
     update_fundraising,
     update_esg,
     update_rating,
+    update_earnings,
     get_fmp_symbols_data,
     update_news,
     display_all_symbols,
@@ -28,6 +29,7 @@ urlpatterns = [
     path('update_fundraising/',update_fundraising),
     path('update_mergers_acquisitions/',update_mergers_acquisitions),
     path('update_rating/',update_rating),
+    path('update_earnings/',update_earnings),
     path('get_fmp_symbols_data/',get_fmp_symbols_data),
     path('clear_collections/',clear_test_collections), #TODO delete this endpoint
     path('display/',display_all_symbols),
