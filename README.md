@@ -2,6 +2,7 @@
 
 What does this do? 
 - Reload our DB with all FMP and EOD market data once per day
+- Uses 8 concurrent threads during API data collection and DB population to speed up tasks
 
 Steps to run locally:
 1. cd into the `stock_api_backend` folder
