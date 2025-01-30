@@ -35,6 +35,7 @@ client=MongoClient(mongo_uri)
 db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
 fmp_assets_collection=db['market_fmp_symbols']
+index_limit=config('DB_INDEX_LIMIT')
 
 @api_view(['GET'])
 def get_stock_data(request,symbol):
@@ -83,7 +84,7 @@ def update_ipo(request):
 def update_fundamentals(request):
     cursor=assets_collection.find(batch_size=100)
     fundamentals_response=0
-    for symb in cursor[:3]:
+    for symb in cursor[:index_limit]:
         symbol=symb['Code']
         print(symbol)
         fundamentals_response=fetch_fundamentals_data(symbol)
@@ -97,7 +98,7 @@ def update_fundamentals(request):
 def update_esg(request):
     cursor=fmp_assets_collection.find(batch_size=100)
     esg_response=0
-    for symb in cursor[:3]:
+    for symb in cursor[:index_limit]:
         symbol=symb['symbol']
         print(symbol)
         esg_response=fetch_esg_data(symbol)
@@ -111,7 +112,7 @@ def update_esg(request):
 def update_news(request):
     cursor=assets_collection.find(batch_size=100)
     news_response=0
-    for symb in cursor[:3]:
+    for symb in cursor[:index_limit]:
         symbol=symb['Code']
         market=symb['Exchange']
         print(symbol)
@@ -126,7 +127,7 @@ def update_news(request):
 def update_rating(request):
     cursor=fmp_assets_collection.find(batch_size=100)
     rating_response=0
-    for symb in cursor[:3]:
+    for symb in cursor[:index_limit]:
         symbol=symb['symbol']
         print(symbol)
         rating_response=fetch_rating_data(symbol)

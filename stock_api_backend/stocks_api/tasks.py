@@ -32,6 +32,7 @@ db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
 fmp_assets_collection=db['market_fmp_symbols']
 us_exchanges={'NYSE MKT', 'AMEX', 'OTCGREY', 'NASDAQ', 'OTCCE', 'OTC', 'NYSE ARCA', 'BATS', 'OTCQX', 'OTCQB', 'OTCMTKS', 'NMFQS', 'US', 'OTCBB', 'OTCMKTS', 'PINK', 'NYSE'}
+index_limit=config('DB_INDEX_LIMIT')
 
 logger=logging.getLogger('django')
 
@@ -92,7 +93,7 @@ def populate_market_stocks(self,market_ticker):
             msg=f'Data not found for asset with symbol {market_ticker}'
             logger.error(msg)
             raise Exception(msg)
-        for symbol in symbols[:5]:
+        for symbol in symbols[:index_limit]:
             try:
                 save_asset_to_mongo(symbol,'EOD')
             except Exception as e:
@@ -122,7 +123,7 @@ def populate_fmp_stocks(self):
             msg='FMP data not found'
             logger.error(msg)
             raise Exception(msg)
-        for company in symbols[:5]:
+        for company in symbols[:index_limit]:
             market_ticker = company['exchangeShortName']
             thissymbol=company['symbol']
             try:
@@ -153,7 +154,7 @@ def async_market_population(self):
     try:
         code,markets=fetch_market_exchange_data()
         market_errors=[]
-        for market in markets[:5]:
+        for market in markets[:index_limit]:
             try:
                 save_market_to_mongo(market)
             except Exception as e:
@@ -164,7 +165,7 @@ def async_market_population(self):
             msg=f'Error saving market symbol data: {market_errors}'
             logger.error(msg)
             raise Exception(msg)
-        market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:5]]
+        market_symbols_update_tasks=[populate_market_stocks.s(market['Code']) for market in markets[:index_limit]]
         market_symbols_update_tasks.append(populate_fmp_stocks.s())
         market_symbols_callback=webhook_push.s(task_id=self.request.id,category='market symbols')
         data_filling=fill_all_data.s()
