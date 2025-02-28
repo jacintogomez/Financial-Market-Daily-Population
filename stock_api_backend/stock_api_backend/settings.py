@@ -154,13 +154,15 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Celery Configuration for docker
-# CELERY_BROKER_URL = 'redis://redis:6379/0'  # For local development
-# CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
-
-# Celery Configuration without Docker
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # For local development
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+DOCKERIZED=config('DOCKERIZED',cast=bool)
+if DOCKERIZED:
+    # Celery Configuration for docker
+    CELERY_BROKER_URL = 'redis://redis:6379/0'  # For local development
+    CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+else:
+    # Celery Configuration without Docker
+    CELERY_BROKER_URL = 'redis://localhost:6379/0'  # For local development
+    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
 # Optional but recommended Celery settings
 CELERY_ACCEPT_CONTENT = ['application/json']
