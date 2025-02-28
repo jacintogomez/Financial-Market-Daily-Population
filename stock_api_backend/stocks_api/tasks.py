@@ -32,7 +32,7 @@ db=client[config('MONGODB_DB_NAME')]
 assets_collection=db['market_symbols']
 fmp_assets_collection=db['market_fmp_symbols']
 us_exchanges={'NYSE MKT', 'AMEX', 'OTCGREY', 'NASDAQ', 'OTCCE', 'OTC', 'NYSE ARCA', 'BATS', 'OTCQX', 'OTCQB', 'OTCMTKS', 'NMFQS', 'US', 'OTCBB', 'OTCMKTS', 'PINK', 'NYSE'}
-index_limit=config('DB_INDEX_LIMIT')
+index_limit=int(config('DB_INDEX_LIMIT'))
 
 logger=logging.getLogger('django')
 
